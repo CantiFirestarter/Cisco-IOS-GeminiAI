@@ -24,10 +24,10 @@ FORMATTING RULES:
 `;
 
 export const getCiscoCommandInfo = async (query: string, imageBase64?: string, modelId: string = 'gemini-3-pro-preview') => {
-  // Initialization must use named parameter 'apiKey'
+  // Always initialize with named parameter 'apiKey'
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  // Per guidelines: Upgrade to 'gemini-3-pro-image-preview' for tasks involving search grounding.
+  // Use gemini-3-pro-image-preview for search grounding tasks
   const activeModel = modelId.includes('pro') ? 'gemini-3-pro-image-preview' : modelId;
   
   const contents: any[] = [];
@@ -44,7 +44,7 @@ export const getCiscoCommandInfo = async (query: string, imageBase64?: string, m
   
   contents.push({ parts });
 
-  // Thinking config is only for Gemini 3 and 2.5 series.
+  // Only models in the 3 and 2.5 series support thinkingConfig
   const isComplex = query.length > 80 || /troubleshoot|design|architecture|bgp|ospf/i.test(query);
   const thinkingBudget = activeModel.includes('pro') ? 16000 : (activeModel.includes('flash') ? 8000 : 0);
 
@@ -55,7 +55,6 @@ export const getCiscoCommandInfo = async (query: string, imageBase64?: string, m
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
-        // Google Search tool is only permitted for gemini-3-pro-image-preview
         tools: activeModel.includes('pro') ? [{ googleSearch: {} }] : undefined,
         thinkingConfig: isComplex && thinkingBudget > 0 ? { thinkingBudget } : undefined,
         responseSchema: {
@@ -77,11 +76,13 @@ export const getCiscoCommandInfo = async (query: string, imageBase64?: string, m
       },
     });
 
-    // Property .text is a getter, not a method.
-    const responseText = response.text || '{}';
-    const result = JSON.parse(responseText);
+    // Directly access .text property
+    const responseText = response.text;
+    if (!responseText) throw new Error("Empty response from Cisco Intelligence Node");
 
-    // Extract grounding sources from groundingMetadata if tool was triggered.
+    const result = JSON.parse(responseText.trim());
+
+    // Extract grounding sources
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks) {
       result.sources = chunks

@@ -48,7 +48,6 @@ export default function App() {
   const [selectedModel, setSelectedModel] = useState(MODELS[0]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [attachedImage, setAttachedImage] = useState(null);
-  const [clearConfirmState, setClearConfirmState] = useState(false);
   
   const scrollRef = useRef(null);
   const menuRef = useRef(null);
@@ -56,9 +55,14 @@ export default function App() {
 
   useEffect(() => {
     const checkKey = async () => {
+      // Check for specific platform key-selection availability
       if (window.aistudio?.hasSelectedApiKey) {
-        const selected = await window.aistudio.hasSelectedApiKey();
-        setHasApiKey(selected);
+        try {
+          const selected = await window.aistudio.hasSelectedApiKey();
+          setHasApiKey(selected);
+        } catch (e) {
+          console.warn("Key selection check unavailable", e);
+        }
       }
       setIsCheckingKey(false);
     };
@@ -68,6 +72,7 @@ export default function App() {
   const handleOpenKeySelection = async () => {
     if (window.aistudio?.openSelectKey) {
       await window.aistudio.openSelectKey();
+      // Assume success after trigger to avoid race condition
       setHasApiKey(true);
     }
   };
@@ -79,24 +84,26 @@ export default function App() {
     }
   }, [messages, view]);
 
-  const isPredictive = useMemo(() => {
-    return JSON.stringify(dynamicSuggestions) !== JSON.stringify(DEFAULT_SUGGESTIONS);
-  }, [dynamicSuggestions]);
-
   useEffect(() => {
     const updateSuggestions = async () => {
       const userQueries = messages
-        .filter(m => m.role === 'user' && m.content !== "Analyze attached image")
+        .filter(m => m.role === 'user' && m.content !== "Image Analysis Request")
         .map(m => m.content)
         .slice(-3);
       
       if (userQueries.length > 0) {
-        const newSuggestions = await getDynamicSuggestions(userQueries);
-        setDynamicSuggestions(newSuggestions);
-        localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(newSuggestions));
+        try {
+          const newSuggestions = await getDynamicSuggestions(userQueries);
+          if (Array.isArray(newSuggestions)) {
+            setDynamicSuggestions(newSuggestions);
+            localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(newSuggestions));
+          }
+        } catch (e) {
+          console.error("Failed to update suggestions", e);
+        }
       }
     };
-    const timeout = setTimeout(updateSuggestions, 2000);
+    const timeout = setTimeout(updateSuggestions, 3000);
     return () => clearTimeout(timeout);
   }, [messages.length]);
 
@@ -140,11 +147,18 @@ export default function App() {
         grounded: !!result.sources?.length
       }]);
     } catch (error) {
-      if (error.message?.includes("Requested entity was not found")) setHasApiKey(false);
+      const errorMsg = error.message?.includes("Requested entity was not found") 
+        ? "API Access Revoked: Project not found or billing inactive. Please re-select your key."
+        : "System Fault: Unable to reach Cisco CLI Synthesis node. Please check your connectivity.";
+      
+      if (error.message?.includes("Requested entity was not found")) {
+        setHasApiKey(false);
+      }
+
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: "Deployment Error: API connection failed. Ensure your selected billing project is active.",
+        content: errorMsg,
         timestamp: Date.now(),
       }]);
     } finally {
@@ -171,17 +185,17 @@ export default function App() {
   if (!hasApiKey && !isCheckingKey) {
     return (
       <div className={`flex flex-col h-screen items-center justify-center p-6 text-center ${themeClasses.bg}`}>
-        <div className="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-2xl animate-bounce-subtle">
+        <div className="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-2xl animate-pulse">
           <i className="fas fa-shield-alt text-2xl text-white"></i>
         </div>
         <h2 className="text-2xl font-bold mb-2">Enterprise Verification</h2>
         <p className={`max-w-md mb-8 text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-          This application requires a valid Gemini 3 API key with active billing to access high-performance Cisco synthesis.
+          Secure CLI access requires an active Gemini 3 API key. Please select a project with active billing to continue.
         </p>
         <button onClick={handleOpenKeySelection} className="px-10 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-xl transition-all active:scale-95 mb-4">
           Activate Service
         </button>
-        <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="text-xs text-blue-500 hover:underline">View Billing Documentation</a>
+        <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener" className="text-xs text-blue-500 hover:underline">Billing & Quota Policy</a>
       </div>
     );
   }
@@ -218,7 +232,7 @@ export default function App() {
       </header>
 
       <main className="flex-1 overflow-hidden relative flex flex-col max-w-5xl mx-auto w-full">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
           {view === 'home' ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-xl ${themeClasses.emptyCard}`}>
@@ -236,9 +250,9 @@ export default function App() {
             messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
                 <div className={`${msg.role === 'user' ? 'max-w-[80%] bg-blue-600 text-white rounded-2xl p-4' : 'w-full'}`}>
-                  {msg.image && <img src={msg.image} className="max-w-xs rounded-lg mb-3 border border-white/20" alt="Upload" />}
+                  {msg.image && <img src={msg.image} className="max-w-xs rounded-lg mb-3 border border-white/20 shadow-md" alt="Upload Preview" />}
                   {msg.grounded && <div className="text-[9px] uppercase tracking-tighter font-black text-blue-400 mb-2"><i className="fas fa-globe mr-1"></i> Live Grounding Active</div>}
-                  {msg.metadata ? <ResultCard data={msg.metadata} isDark={isDark} /> : <p className="text-sm">{msg.content}</p>}
+                  {msg.metadata ? <ResultCard data={msg.metadata} isDark={isDark} /> : <p className="text-sm whitespace-pre-wrap">{msg.content}</p>}
                 </div>
               </div>
             ))
@@ -257,7 +271,7 @@ export default function App() {
 
         <div className={`p-4 border-t ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
           <form onSubmit={handleSubmit} className="flex gap-2 max-w-4xl mx-auto items-center">
-            <button type="button" onClick={() => fileInputRef.current.click()} className={`p-3 rounded-xl border ${themeClasses.util} hover:text-blue-500`}><i className="fas fa-camera"></i></button>
+            <button type="button" onClick={() => fileInputRef.current.click()} className={`p-3 rounded-xl border transition-colors ${themeClasses.util} hover:text-blue-500`}><i className="fas fa-camera"></i></button>
             <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
             <input 
               type="text" 
@@ -270,13 +284,20 @@ export default function App() {
               {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-arrow-right"></i>}
             </button>
           </form>
+          {attachedImage && (
+            <div className="mt-2 flex items-center gap-2">
+              <div className="relative">
+                <img src={attachedImage} className="w-10 h-10 rounded border border-blue-500 object-cover" alt="Selected" />
+                <button onClick={() => setAttachedImage(null)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-[8px] flex items-center justify-center">×</button>
+              </div>
+              <span className="text-[10px] text-blue-500 font-bold">Image ready for analysis</span>
+            </div>
+          )}
         </div>
       </main>
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes bounce-subtle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-        .animate-bounce-subtle { animation: bounce-subtle 3s ease-in-out infinite; }
       `}</style>
     </div>
   );
