@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   define: {
-    // Provide a shim for process.env to prevent "process is not defined" errors in the browser
+    // Inject environment variables directly as strings for the client bundle
     'process.env.API_KEY': JSON.stringify(process.env.API_KEY || ''),
     'process.env': {
         API_KEY: process.env.API_KEY || ''
@@ -11,7 +11,6 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    // Explicitly use esbuild to avoid terser dependency issues during deployment
     minify: 'esbuild',
   }
 });
