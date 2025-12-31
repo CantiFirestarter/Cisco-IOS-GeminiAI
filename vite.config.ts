@@ -1,4 +1,3 @@
-
 import { defineConfig } from 'vite';
 
 export default defineConfig({
@@ -12,6 +11,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    // Use default esbuild minification to avoid needing extra dependencies like terser
+    // Explicitly use esbuild to avoid terser dependency issues during deployment
+    minify: 'esbuild',
   }
 });
