@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Modality } from "@google/genai";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const SYSTEM_INSTRUCTION = `
@@ -59,13 +59,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { query, imageBase64, model = 'gemini-3-pro-preview', forceSearch = false, action } = req.body;
+    const { query, imageBase64, model = 'gemini-3-pro-preview', forceSearch = false, action, text } = req.body;
 
     if (!process.env.API_KEY) {
       return res.status(500).json({ error: 'API_KEY not configured in environment variables' });
     }
 
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    // Handle text-to-speech
+    if (action === 'tts') {
+      if (!text) {
+        return res.status(400).json({ error: 'Text is required for TTS' });
+      }
+
+      const ttsResponse = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text: `Say in a professional, technical voice: ${text}` }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Kore' },
+            },
+          },
+        },
+      });
+
+      const base64Audio = ttsResponse.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (!base64Audio) {
+        return res.status(500).json({ error: 'No audio data received' });
+      }
+
+      return res.status(200).json({ audioBase64: base64Audio, sampleRate: 24000, channels: 1 });
+    }
 
     // Handle suggestions
     if (action === 'suggestions') {
