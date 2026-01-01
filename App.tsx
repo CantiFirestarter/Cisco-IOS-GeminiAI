@@ -34,6 +34,7 @@ export default function App() {
   const [hasApiKey, setHasApiKey] = useState(true); 
   const [isCheckingKey, setIsCheckingKey] = useState(true);
   const [isAiStudioEnv, setIsAiStudioEnv] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState('100dvh');
 
   const [dynamicSuggestions, setDynamicSuggestions] = useState(() => {
     try {
@@ -59,6 +60,25 @@ export default function App() {
   const menuRef = useRef(null);
   const fileInputRef = useRef(null);
   const recognitionRef = useRef(null);
+
+  // Mobile Keyboard Fix: Listen to Visual Viewport changes
+  useEffect(() => {
+    if (!window.visualViewport) return;
+
+    const handleResize = () => {
+      // On some mobile browsers, the height of the visual viewport correctly excludes the keyboard.
+      // We set the height of our main container to match exactly the visible space.
+      setViewportHeight(`${window.visualViewport.height}px`);
+    };
+
+    window.visualViewport.addEventListener('resize', handleResize);
+    window.visualViewport.addEventListener('scroll', handleResize);
+    
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleResize);
+      window.visualViewport?.removeEventListener('scroll', handleResize);
+    };
+  }, []);
 
   const toggleListening = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -275,7 +295,7 @@ export default function App() {
 
   if (!hasApiKey && !isCheckingKey && isAiStudioEnv) {
     return (
-      <div className={`flex flex-col h-[100dvh] items-center justify-center p-6 text-center ${themeClasses.bg}`}>
+      <div style={{ height: viewportHeight }} className={`flex flex-col items-center justify-center p-6 text-center ${themeClasses.bg}`}>
         <div className="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-2xl">
           <i className="fas fa-key text-2xl text-white"></i>
         </div>
@@ -303,8 +323,8 @@ export default function App() {
   }
 
   return (
-    <div className={`flex flex-col h-[100dvh] transition-colors duration-300 overflow-hidden ${themeClasses.bg}`}>
-      <header className={`border-b p-4 pb-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between z-10 ${themeClasses.header}`}>
+    <div style={{ height: viewportHeight }} className={`flex flex-col transition-colors duration-300 overflow-hidden ${themeClasses.bg}`}>
+      <header className={`border-b p-4 pb-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between z-10 shrink-0 ${themeClasses.header}`}>
         <button
           onClick={goHome}
           className="flex items-center gap-3 group text-left transition-transform active:scale-95"
@@ -476,7 +496,7 @@ export default function App() {
           )}
         </div>
 
-        <div className={`p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t ${isDark ? 'bg-slate-950/90 border-slate-800 backdrop-blur-md' : 'bg-white/90 border-slate-200 backdrop-blur-md'}`}>
+        <div className={`p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t shrink-0 ${isDark ? 'bg-slate-950/90 border-slate-800 backdrop-blur-md' : 'bg-white/90 border-slate-200 backdrop-blur-md'}`}>
           <div className="max-w-4xl mx-auto">
             <form onSubmit={handleSubmit} className="flex gap-2 items-center">
               <button 
