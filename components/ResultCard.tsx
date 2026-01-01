@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { synthesizeSpeech } from '../services/geminiService';
 
 const FormattedText = ({ text, isDark, className = "" }) => {
   if (!text) return null;
   const lines = text.split('\n');
   const renderInline = (input) => {
-    // Regex to match **bold**, *italic*, and `code`
     const parts = input.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
@@ -29,7 +29,6 @@ const FormattedText = ({ text, isDark, className = "" }) => {
     <div className={`${className} flex flex-col gap-1`}>
       {lines.map((line, idx) => {
         const trimmed = line.trim();
-        // Handle bullet points
         if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || /^\d+\.\s/.test(trimmed)) {
           const isNumberBullet = /^\d+\.\s/.test(trimmed);
           const bulletContent = isNumberBullet ? trimmed.replace(/^\d+\.\s/, '') : trimmed.substring(2);
@@ -81,6 +80,42 @@ const Section = ({ title, icon, content, color, isDark, isCode = false }) => {
 
 export default function ResultCard({ data, isDark }) {
   const [showReasoning, setShowReasoning] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const audioSourceRef = useRef(null);
+
+  const toggleSpeech = async () => {
+    if (isSpeaking) {
+      if (audioSourceRef.current) {
+        audioSourceRef.current.stop();
+        audioSourceRef.current = null;
+      }
+      setIsSpeaking(false);
+      return;
+    }
+
+    try {
+      setIsSynthesizing(true);
+      const textToSpeak = `Cisco command analysis. Command: ${data.syntax}. Category: ${data.deviceCategory}. Mode: ${data.commandMode}. Description: ${data.description.replace(/`/g, '')}`;
+      const { audioBuffer, audioCtx } = await synthesizeSpeech(textToSpeak);
+      
+      const source = audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioCtx.destination);
+      source.onended = () => {
+        setIsSpeaking(false);
+        audioSourceRef.current = null;
+      };
+      
+      source.start(0);
+      audioSourceRef.current = source;
+      setIsSpeaking(true);
+    } catch (err) {
+      console.error("Speech Synthesis Error:", err);
+    } finally {
+      setIsSynthesizing(false);
+    }
+  };
 
   const getStyle = (type, val) => {
     const isConfig = val?.toLowerCase().includes('config');
@@ -113,7 +148,19 @@ export default function ResultCard({ data, isDark }) {
         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase ${modeS.bg} ${modeS.text} ${modeS.border}`}>
           <i className={`fas ${modeS.icon}`}></i>{data.commandMode}
         </div>
-        <div className="flex-1 flex justify-end">
+        <div className="flex-1 flex justify-end gap-2">
+          <button 
+            onClick={toggleSpeech} 
+            disabled={isSynthesizing}
+            className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold uppercase flex items-center gap-2 transition-all ${
+              isSpeaking ? 'bg-blue-600 border-blue-500 text-white animate-pulse' : 
+              isDark ? 'bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800' : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200'
+            }`}
+          >
+            {isSynthesizing ? <i className="fas fa-circle-notch fa-spin"></i> : <i className={`fas ${isSpeaking ? 'fa-stop' : 'fa-volume-up'}`}></i>}
+            {isSpeaking ? 'Stop' : 'Listen'}
+          </button>
+          
           <button onClick={() => setShowReasoning(!showReasoning)} className={`px-4 py-1.5 rounded-xl border text-[10px] font-bold uppercase flex items-center gap-2 transition-colors ${isDark ? 'bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800' : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200'}`}>
             <i className="fas fa-brain text-blue-500"></i> Logic {showReasoning ? '▲' : '▼'}
           </button>
@@ -130,7 +177,18 @@ export default function ResultCard({ data, isDark }) {
         <div className="col-span-1 md:col-span-2"><Section title="Syntax" icon="fa-terminal" content={data.syntax} color="text-blue-500" isDark={isDark} isCode={true} /></div>
         <Section title="Description" icon="fa-info-circle" content={data.description} color="text-indigo-500" isDark={isDark} />
         <Section title="Context" icon="fa-layer-group" content={data.usageContext} color="text-teal-500" isDark={isDark} />
-        <div className="col-span-1 md:col-span-2"><Section title="Options" icon="fa-list-ul" content={data.options} color="text-amber-500" isDark={isDark} /></div>
+        <div className="col-span-1 md:col-span-2"><Section title="Configuration Checklist" icon="fa-tasks" content={data.checklist} color="text-cyan-400" isDark={isDark} /></div>
+        
+        {/* Changed Options to Sky Blue to separate it from Security/Notes */}
+        <div className="col-span-1 md:col-span-2"><Section title="Options" icon="fa-list-ul" content={data.options} color="text-sky-400" isDark={isDark} /></div>
+        
+        <div className="col-span-1 md:col-span-2"><Section title="Troubleshooting & Verification" icon="fa-tools" content={data.troubleshooting} color="text-fuchsia-500" isDark={isDark} /></div>
+        
+        {/* Security stands out more as the primary 'Orange' section */}
+        <div className="col-span-1 md:col-span-2">
+            <Section title="Security Considerations" icon="fa-shield-halved" content={data.security} color="text-orange-500" isDark={isDark} />
+        </div>
+        
         <div className="col-span-1 md:col-span-2"><Section title="Notes" icon="fa-exclamation-triangle" content={data.notes} color="text-rose-500" isDark={isDark} /></div>
         <div className="col-span-1 md:col-span-2"><Section title="Examples" icon="fa-code" content={data.examples} color="text-emerald-500" isDark={isDark} isCode={true} /></div>
       </div>
