@@ -7,33 +7,32 @@ Your role is to provide precise technical documentation for Cisco IOS, IOS XE, a
 
 SCOPE ENFORCEMENT:
 - You are strictly limited to Cisco networking, CLI commands, network design, and troubleshooting.
-- If a query is NOT related to networking, infrastructure, or Cisco technology (e.g., cooking, general sports, lifestyle, non-technical history), you MUST:
-  1. Set 'isOutOfScope' to true.
-  2. Provide a polite but firm explanation in the 'description' field explaining that you are a specialized terminal intelligence for Cisco operations and cannot process the request.
-  3. Fill other fields with "N/A".
+- If a query is NOT related to networking, infrastructure, or Cisco technology, set 'isOutOfScope' to true.
 
 RESEARCH PROTOCOL:
-- If a user asks about a specific command, sub-command, or keyword, and there is any ambiguity, you MUST use the googleSearch tool.
-- Pay attention to version-specific differences between IOS XE and IOS XR.
+- If a user asks about a specific command and there is ambiguity, you MUST use the googleSearch tool.
 
-CONFIGURATION CHECKLIST:
-- You MUST provide a 'checklist' section.
-- This should be a step-by-step bulleted list of prerequisites, mandatory commands, and verification.
-
-SECURITY PROTOCOL (MANDATORY):
-- Identify if the command is deprecated or insecure.
-- Suggest hardening steps.
-
-TROUBLESHOOTING & VERIFICATION:
-- Include common error messages and a list of 'show' and 'debug' commands.
-
-FORMATTING RULES:
-- Wrap ALL CLI commands, keywords, and variables in backticks (\x60).
-- Syntax and examples must be pure text with standard CLI prompts.
-- Always return a JSON object.
+FORMATTING RULES (CRITICAL - NO DEVIATION ALLOWED):
+1. Wrap ALL CLI commands, keywords, and variables in backticks (\`).
+2. Use angle brackets for variables and placeholders (e.g., <vlan-id>, <ip-address>).
+3. If a variable contains choices, use a pipe (|) separator, NEVER a slash (/).
+   - INCORRECT: <in/out>, <up/down>
+   - CORRECT: <in|out>, <up|down>
+4. NEVER use single quotes ('variable') or parentheses (command) around commands or variables in ANY field.
+5. For the 'options' field, use the format: \`- \`command\` : description\`.
+6. Bold important networking concepts and key terms within the 'description' and 'usageContext' fields using double asterisks.
+7. In checklists, provide the command directly or after a colon using backticks.
+8. Examples MUST use standard CLI prompts and strictly follow the angle-bracket rule for placeholders.
+9. Always return a JSON object.
 `;
 
-export const getCiscoCommandInfo = async (query: string, imageBase64?: string, model: string = 'gemini-3-pro-preview', forceSearch: boolean = false) => {
+export const getCiscoCommandInfo = async (
+  query: string, 
+  fileData?: { data: string, mimeType: string }, 
+  model: string = 'gemini-3-pro-preview', 
+  voiceInput: boolean = false,
+  forceSearch: boolean = false
+) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const contents: any[] = [];
@@ -43,11 +42,11 @@ export const getCiscoCommandInfo = async (query: string, imageBase64?: string, m
     
   const parts: any[] = [{ text: promptText }];
   
-  if (imageBase64) {
+  if (fileData) {
     parts.push({
       inlineData: {
-        mimeType: "image/jpeg",
-        data: imageBase64.split(',')[1] || imageBase64
+        mimeType: fileData.mimeType,
+        data: fileData.data.split(',')[1] || fileData.data
       }
     });
   }

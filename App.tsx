@@ -50,7 +50,10 @@ export default function App() {
   const [isDark, setIsDark] = useState(true);
   const [selectedModel, setSelectedModel] = useState(MODELS[0]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [attachedImage, setAttachedImage] = useState(null);
+  
+  const [uploadMode, setUploadMode] = useState<'image' | 'file'>('image');
+  const [attachedFile, setAttachedFile] = useState<{ data: string, mimeType: string, name: string } | null>(null);
+
   const [clearConfirmState, setClearConfirmState] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isResearchMode, setIsResearchMode] = useState(false);
@@ -61,7 +64,6 @@ export default function App() {
   const fileInputRef = useRef(null);
   const recognitionRef = useRef(null);
 
-  // Mobile Keyboard Fix: Listen to Visual Viewport changes
   useEffect(() => {
     if (!window.visualViewport) return;
 
@@ -173,13 +175,12 @@ export default function App() {
 
   useEffect(() => {
     const updateSuggestions = async () => {
-      // Logic: Only use user queries that received a valid (not out-of-scope) Cisco response
       const userQueries = [];
       for (let i = 0; i < messages.length - 1; i++) {
         const msg = messages[i];
         const nextMsg = messages[i + 1];
         
-        const isValidUserMsg = msg.role === 'user' && msg.content !== "Analyze attached image";
+        const isValidUserMsg = msg.role === 'user' && msg.content !== "Analyze attached resource";
         const isValidAssistantResponse = nextMsg && nextMsg.role === 'assistant' && nextMsg.metadata && !nextMsg.metadata.isOutOfScope;
 
         if (isValidUserMsg && isValidAssistantResponse) {
@@ -203,13 +204,25 @@ export default function App() {
     return () => clearTimeout(timeout);
   }, [messages.length]);
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setAttachedImage(reader.result);
+      reader.onloadend = () => {
+        setAttachedFile({
+          data: reader.result as string,
+          mimeType: file.type || 'application/octet-stream',
+          name: file.name
+        });
+      };
       reader.readAsDataURL(file);
     }
+  };
+
+  const toggleUploadMode = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setUploadMode(prev => prev === 'image' ? 'file' : 'image');
+    setAttachedFile(null);
   };
 
   const goHome = () => setView('home');
@@ -242,30 +255,36 @@ export default function App() {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     const trimmedValue = inputValue.trim();
-    if ((!trimmedValue && !attachedImage) || isLoading) return;
+    if ((!trimmedValue && !attachedFile) || isLoading) return;
 
     const userMsg = {
       id: Date.now().toString(),
       role: 'user',
-      content: trimmedValue || "Analyze attached image",
+      content: trimmedValue || `Analyze attached ${uploadMode}`,
       timestamp: Date.now(),
-      image: attachedImage
+      image: attachedFile?.mimeType.startsWith('image/') ? attachedFile.data : undefined,
+      file: !attachedFile?.mimeType.startsWith('image/') ? attachedFile : undefined
     };
 
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
-    setAttachedImage(null);
+    setAttachedFile(null);
     setIsLoading(true);
     setView('chat');
 
     try {
       const modelToUse = isResearchMode ? 'gemini-3-pro-preview' : selectedModel.id;
-      const result = await getCiscoCommandInfo(userMsg.content, userMsg.image, modelToUse, isResearchMode);
+      const result = await getCiscoCommandInfo(
+        userMsg.content, 
+        userMsg.image ? { data: userMsg.image, mimeType: 'image/jpeg' } : (userMsg.file ? { data: userMsg.file.data, mimeType: userMsg.file.mimeType } : undefined), 
+        modelToUse, 
+        isResearchMode
+      );
       
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Analysis for: ${userMsg.content}`,
+        content: `Analysis complete for requested resource.`,
         timestamp: Date.now(),
         metadata: result
       }]);
@@ -331,7 +350,6 @@ export default function App() {
     );
   }
 
-  // Condensed model name logic for the header button
   const getShortModelName = () => {
     if (isResearchMode) return 'Research';
     const parts = selectedModel.name.split(' ');
@@ -398,14 +416,6 @@ export default function App() {
                       <div className="text-[9px] sm:text-[10px] opacity-60 line-clamp-1">{m.desc}</div>
                     </button>
                   ))}
-                  {isAiStudioEnv && (
-                    <>
-                      <div className="h-px bg-slate-800 my-1 mx-2 opacity-50"></div>
-                      <button onClick={handleOpenKeySelection} className="w-full text-left p-2.5 sm:p-3 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-colors">
-                        <div className="text-[10px] font-bold uppercase tracking-wider"><i className="fas fa-sync-alt mr-2"></i>Change API Key</div>
-                      </button>
-                    </>
-                  )}
                 </div>
               </div>
             )}
@@ -458,38 +468,29 @@ export default function App() {
                       <i className="fas fa-question-circle text-blue-500/60"></i> Why use it?
                     </div>
                     <p className={`text-[11px] sm:text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                      Standard AI knowledge has a "cutoff." Deep Research connects Gemini to <strong>live Cisco documentation</strong> via Google Search.
+                      Standard AI knowledge has a "<strong>cutoff</strong>." Deep Research connects Gemini to <strong>live Cisco documentation</strong> via <strong>Google Search</strong>.
                     </p>
                   </div>
                   
                   <div className="space-y-2">
                     <div className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-2">
-                      <i className="fas fa-clock text-blue-500/60"></i> When to use it?
+                      <i className="fas fa-lightbulb text-blue-500/60"></i> When to use it?
                     </div>
                     <p className={`text-[11px] sm:text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                      Critical for <strong>niche commands</strong>, high-stakes changes, or verifying syntax for the latest IOS software trains.
+                      <strong>Critical</strong> for <strong>niche commands</strong>, <strong>high-stakes changes</strong>, or verifying syntax for the <strong>latest IOS software trains</strong>.
                     </p>
                   </div>
                   
                   <div className="space-y-2">
                     <div className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-2">
-                      <i className="fas fa-mouse-pointer text-blue-500/60"></i> How to use it?
+                      <i className="fas fa-check-double text-blue-500/60"></i> How to use it?
                     </div>
                     <p className={`text-[11px] sm:text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                      Toggle the <strong>Search Icon</strong> inside the command bar. The interface will glow blue when live verification is active.
+                      Toggle the <strong>Search Icon</strong> inside the command bar. The interface will <strong>glow blue</strong> when <strong>live verification</strong> is active.
                     </p>
                   </div>
                 </div>
               </div>
-
-              {messages.length > 0 && (
-                <button
-                  onClick={() => setView('chat')}
-                  className="mt-2 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-500 hover:text-blue-400 flex items-center gap-2 transition-all opacity-60 hover:opacity-100 mb-6"
-                >
-                  <i className="fas fa-history"></i> Return to active Session
-                </button>
-              )}
             </div>
           ) : (
             <div className="flex flex-col gap-6 w-full">
@@ -497,6 +498,15 @@ export default function App() {
                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn w-full`}>
                   <div className={`${msg.role === 'user' ? 'max-w-[90%] sm:max-w-[85%] bg-blue-600 text-white rounded-2xl rounded-tr-none p-3 sm:p-4 shadow-md' : 'w-full'}`}>
                     {msg.image && <img src={msg.image} className="max-w-full sm:max-w-sm rounded-lg mb-3 border border-white/20 shadow-lg" alt="User upload" />}
+                    {msg.file && (
+                      <div className="flex items-center gap-3 bg-white/10 p-3 rounded-xl border border-white/20 mb-3">
+                        <i className="fas fa-file-code text-xl"></i>
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="text-xs font-bold truncate">{msg.file.name}</span>
+                          <span className="text-[9px] opacity-60 uppercase">{msg.file.mimeType}</span>
+                        </div>
+                      </div>
+                    )}
                     {msg.role === 'assistant' ? (
                       msg.metadata ? <ResultCard data={msg.metadata} isDark={isDark} /> : <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>{msg.content}</div>
                     ) : <p className="text-sm font-medium break-words">{msg.content}</p>}
@@ -526,16 +536,33 @@ export default function App() {
         <div className={`p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t shrink-0 ${isDark ? 'bg-slate-950/90 border-slate-800 backdrop-blur-md' : 'bg-white/90 border-slate-200 backdrop-blur-md'}`}>
           <div className="max-w-4xl mx-auto">
             <form onSubmit={handleSubmit} className="flex gap-2 items-center">
-              <button 
-                type="button" 
-                onClick={() => fileInputRef.current.click()} 
-                className={`p-3 w-10 h-10 sm:w-12 sm:h-12 rounded-xl border flex items-center justify-center shrink-0 ${themeClasses.util} hover:bg-blue-500/10 hover:text-blue-500 transition-all shadow-sm`}
-                title="Attach Image"
-              >
-                <i className="fas fa-camera text-sm sm:text-base"></i>
-              </button>
+              <div className="relative group/att shrink-0">
+                <button 
+                  type="button" 
+                  onClick={() => fileInputRef.current.click()} 
+                  className={`p-3 w-10 h-10 sm:w-12 sm:h-12 rounded-xl border flex items-center justify-center shrink-0 ${themeClasses.util} hover:bg-blue-500/10 hover:text-blue-500 transition-all shadow-sm group`}
+                  title={uploadMode === 'image' ? "Attach Image" : "Attach Configuration File"}
+                >
+                  <i className={`fas ${uploadMode === 'image' ? 'fa-camera' : 'fa-paperclip'} text-sm sm:text-base`}></i>
+                  
+                  <div 
+                    onClick={toggleUploadMode}
+                    className={`absolute -top-1 -right-1 w-5 h-5 rounded-full border flex items-center justify-center text-[8px] transition-all hover:scale-110 active:scale-95 z-20 ${
+                      isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-600 shadow-sm'
+                    } hover:bg-blue-600 hover:text-white hover:border-blue-500`}
+                  >
+                    <i className="fas fa-sync-alt"></i>
+                  </div>
+                </button>
+              </div>
               
-              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileUpload} 
+                accept={uploadMode === 'image' ? "image/*" : ".txt,.cfg,.log,.pdf,application/pdf,text/plain"} 
+                className="hidden" 
+              />
               
               <div className="relative flex-1 group">
                 <button
@@ -552,11 +579,20 @@ export default function App() {
                   {isResearchMode && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-blue-600"></span>}
                 </button>
 
-                {attachedImage && (
+                {attachedFile && (
                   <div className="absolute left-12 top-1/2 -translate-y-1/2 z-10 animate-fadeIn">
                     <div className="relative flex items-center gap-1.5 bg-blue-600/10 border border-blue-500/30 px-1.5 py-1 rounded-lg">
-                      <img src={attachedImage} className="w-6 h-6 sm:w-8 sm:h-8 object-cover rounded border border-blue-500/50" alt="Preview" />
-                      <button onClick={() => setAttachedImage(null)} className="text-rose-500 hover:text-rose-400 transition-colors p-0.5"><i className="fas fa-times text-[9px]"></i></button>
+                      {attachedFile.mimeType.startsWith('image/') ? (
+                        <img src={attachedFile.data} className="w-6 h-6 sm:w-8 sm:h-8 object-cover rounded border border-blue-500/50" alt="Preview" />
+                      ) : (
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center bg-blue-500/20 rounded border border-blue-500/50">
+                          <i className="fas fa-file-alt text-[10px] text-blue-500"></i>
+                        </div>
+                      )}
+                      <div className="flex flex-col max-w-[60px] sm:max-w-[100px]">
+                        <span className="text-[8px] font-bold truncate text-blue-500">{attachedFile.name}</span>
+                      </div>
+                      <button onClick={() => setAttachedFile(null)} className="text-rose-500 hover:text-rose-400 transition-colors p-0.5"><i className="fas fa-times text-[9px]"></i></button>
                     </div>
                   </div>
                 )}
@@ -565,9 +601,9 @@ export default function App() {
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder={isResearchMode ? "Searching..." : "Enter CLI..."}
+                  placeholder={attachedFile ? `Analysing ${attachedFile.name}...` : (isResearchMode ? "Searching Cisco Live..." : "Enter CLI Command...")}
                   className={`w-full py-2.5 sm:py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs sm:text-sm transition-all ${themeClasses.input} ${
-                    attachedImage ? 'pl-24 sm:pl-28' : 'pl-12'
+                    attachedFile ? 'pl-32 sm:pl-44' : 'pl-12'
                   }`}
                 />
               </div>
@@ -586,7 +622,7 @@ export default function App() {
 
               <button 
                 type="submit" 
-                disabled={(!inputValue.trim() && !attachedImage) || isLoading} 
+                disabled={(!inputValue.trim() && !attachedFile) || isLoading} 
                 className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-500 disabled:opacity-50 shadow-lg flex items-center justify-center shrink-0 transition-all transform active:scale-95"
                 title="Execute Query"
               >

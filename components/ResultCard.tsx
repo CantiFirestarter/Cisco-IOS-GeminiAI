@@ -4,7 +4,14 @@ import { synthesizeSpeech } from '../services/geminiService';
 
 const FormattedText = ({ text, isDark, className = "" }) => {
   if (!text || text === "N/A") return null;
-  const lines = text.split('\n');
+  
+  // FAIL-SAFE: Transform 'var' into <var>, strip command-wrapping parentheses, and convert slashes to pipes in placeholders
+  const cleanedText = text
+    .replace(/\(\s*(`.*?`)\s*\)/g, '$1')
+    .replace(/'([^']+)'/g, '<$1>')
+    .replace(/<([^>]+)\/([^>]+)>/g, '<$1|$2>');
+  
+  const lines = cleanedText.split('\n');
   const renderInline = (input) => {
     const parts = input.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
     return parts.map((part, i) => {
@@ -29,10 +36,43 @@ const FormattedText = ({ text, isDark, className = "" }) => {
     <div className={`${className} flex flex-col gap-1`}>
       {lines.map((line, idx) => {
         const trimmed = line.trim();
-        if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || /^\d+\.\s/.test(trimmed)) {
-          const isNumberBullet = /^\d+\.\s/.test(trimmed);
-          const bulletContent = isNumberBullet ? trimmed.replace(/^\d+\.\s/, '') : trimmed.substring(2);
+        if (!trimmed) return <div key={idx} className="h-1"></div>;
+
+        // Detection for bullet patterns
+        const isBullet = trimmed.startsWith('- ') || trimmed.startsWith('* ');
+        const isNumberBullet = /^\d+\.\s/.test(trimmed);
+
+        if (isBullet || isNumberBullet) {
           const bulletPrefix = isNumberBullet ? trimmed.match(/^\d+\.\s/)[0] : '';
+          let bulletContent = isNumberBullet ? trimmed.replace(/^\d+\.\s/, '') : trimmed.substring(2);
+          
+          // SPECIAL HANDLING: Auto-highlight commands in "Command : Description" patterns
+          // Handle both "Cmd : Desc" and "Cmd: Desc"
+          const colonMatch = bulletContent.match(/^(.+?)\s?:\s?([^`]+)$/);
+          if (colonMatch && !bulletContent.includes('`')) {
+            const cmdPart = colonMatch[1].trim();
+            const descPart = colonMatch[2].trim();
+
+            // Only treat as a command-first pattern if the left side looks like technical syntax (short, specific chars)
+            const looksLikeCommand = cmdPart.length < 50 && !cmdPart.includes('.') && (cmdPart.includes('<') || cmdPart.split(' ').length < 6);
+
+            if (looksLikeCommand) {
+              return (
+                <div key={idx} className="flex gap-2 pl-1 mb-1">
+                  <span className={`text-[10px] mt-1.5 shrink-0 font-bold ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                    {isNumberBullet ? bulletPrefix : <i className="fas fa-circle text-[6px] text-blue-500/60"></i>}
+                  </span>
+                  <div className="flex-1 leading-relaxed">
+                    <code className={`px-1.5 py-0.5 rounded font-mono text-[0.85em] border transition-colors shadow-sm ${isDark ? 'bg-slate-800 text-blue-400 border-slate-700' : 'bg-slate-100 text-blue-600 border-slate-200'}`}>
+                      {cmdPart}
+                    </code>
+                    <span className={`mx-2 font-bold opacity-40 ${isDark ? 'text-slate-50' : 'text-slate-900'}`}>:</span>
+                    <span className={`${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{renderInline(descPart)}</span>
+                  </div>
+                </div>
+              );
+            }
+          }
 
           return (
             <div key={idx} className="flex gap-2 pl-1 mb-0.5">
@@ -43,7 +83,8 @@ const FormattedText = ({ text, isDark, className = "" }) => {
             </div>
           );
         }
-        return trimmed ? <div key={idx} className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{renderInline(line)}</div> : <div key={idx} className="h-1"></div>;
+        
+        return <div key={idx} className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{renderInline(line)}</div>;
       })}
     </div>
   );
@@ -52,8 +93,15 @@ const FormattedText = ({ text, isDark, className = "" }) => {
 const Section = ({ title, icon, content, color, isDark, isCode = false, onListen, isListening, isSynthesizing }) => {
   if (!content || content === "N/A") return null;
   const [copied, setCopied] = useState(false);
+  
+  // FAIL-SAFE: Transform 'var' into <var>, strip command-wrapping parentheses, and convert slashes to pipes in placeholders
+  const processedContent = content
+    .replace(/\(\s*(`.*?`)\s*\)/g, '$1')
+    .replace(/'([^']+)'/g, '<$1>')
+    .replace(/<([^>]+)\/([^>]+)>/g, '<$1|$2>');
+
   const handleCopy = () => {
-    navigator.clipboard.writeText(content);
+    navigator.clipboard.writeText(processedContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -92,7 +140,7 @@ const Section = ({ title, icon, content, color, isDark, isCode = false, onListen
         )}
       </div>
       <div className={`p-3 sm:p-4 rounded-xl border transition-all duration-300 ${isCode ? 'bg-black text-emerald-400 font-mono text-xs sm:text-sm border-slate-800' : `${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} text-slate-300`}`}>
-        {isCode ? <div className="whitespace-pre-wrap leading-relaxed overflow-x-auto touch-pan-x">{content}</div> : <FormattedText text={content} isDark={isDark} className="text-xs sm:text-sm" />}
+        {isCode ? <div className="whitespace-pre-wrap leading-relaxed overflow-x-auto touch-pan-x">{processedContent}</div> : <FormattedText text={processedContent} isDark={isDark} className="text-xs sm:text-sm" />}
       </div>
     </div>
   );
