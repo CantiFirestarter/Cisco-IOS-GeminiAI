@@ -30,8 +30,8 @@ export const getCiscoCommandInfo = async (
   query: string, 
   fileData?: { data: string, mimeType: string }, 
   model: string = 'gemini-3-pro-preview', 
-  voiceInput: boolean = false,
-  forceSearch: boolean = false
+  forceSearch: boolean = false,
+  voiceInput: boolean = false
 ) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
@@ -173,6 +173,12 @@ export const synthesizeSpeech = async (text: string) => {
   const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
   if (!base64Audio) throw new Error("No audio data received");
   const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+  
+  // Ensure the context is running (required by some browsers after instantiation)
+  if (audioCtx.state === 'suspended') {
+    await audioCtx.resume();
+  }
+  
   const audioBuffer = await decodeAudioData(decodeBase64(base64Audio), audioCtx, 24000, 1);
   return { audioBuffer, audioCtx };
 };
