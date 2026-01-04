@@ -146,7 +146,10 @@ export default function App() {
         const selected = await window.aistudio.hasSelectedApiKey();
         setHasApiKey(selected);
       } else {
-        setHasApiKey(true);
+        // For Vercel/Standard: check if process.env.API_KEY actually exists
+        // (It might be "undefined" as a string if define was used incorrectly)
+        const key = process.env.API_KEY;
+        setHasApiKey(!!key && key !== "undefined");
       }
       setIsCheckingKey(false);
     };
@@ -158,7 +161,7 @@ export default function App() {
       await window.aistudio.openSelectKey();
       setHasApiKey(true); 
     } else {
-      alert("API Key selection is managed via environment variables in this deployment.");
+      alert("Please ensure API_KEY is set in Vercel project settings and trigger a NEW deployment.");
     }
   };
 
@@ -289,15 +292,21 @@ export default function App() {
         metadata: result
       }]);
     } catch (error) {
-      if (error.message?.includes("Requested entity was not found") && isAiStudioEnv) {
-        setHasApiKey(false);
+      console.error("Submit error:", error);
+      let errorMessage = "Synthesis failure. This usually occurs if the API key is invalid or the model capacity is exceeded.";
+      
+      if (!process.env.API_KEY || process.env.API_KEY === "undefined") {
+        errorMessage = "CRITICAL: API Key not found in build environment. Please add API_KEY to Vercel settings and RE-DEPLOY the application.";
+      } else if (error.message?.includes("Requested entity was not found")) {
+        errorMessage = isAiStudioEnv ? "API Key selection required. Re-authenticate via the header." : "Model access error. The selected model might be unavailable in your region or your API key lacks permission.";
+      } else if (error.message?.includes("No valid JSON")) {
+        errorMessage = "Protocol Analysis Error: The AI response could not be structured into the Cisco Command Schema. Try refining your query.";
       }
+
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: error.message?.includes("Requested entity was not found")
-          ? (isAiStudioEnv ? "API Key selection required. Please re-authenticate using the button in the header." : "API Key error. Please verify the environment variables in your Vercel project settings.")
-          : "Synthesis failure. This usually occurs if the API key is invalid or the model capacity is exceeded.",
+        content: errorMessage,
         timestamp: Date.now(),
       }]);
     } finally {
@@ -321,29 +330,29 @@ export default function App() {
     suggestion: 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
   };
 
-  if (!hasApiKey && !isCheckingKey && isAiStudioEnv) {
+  if (!hasApiKey && !isCheckingKey) {
     return (
       <div style={{ height: viewportHeight }} className={`flex flex-col items-center justify-center p-6 text-center ${themeClasses.bg}`}>
-        <div className="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-2xl">
-          <i className="fas fa-key text-2xl text-white"></i>
+        <div className="bg-rose-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-2xl animate-pulse">
+          <i className="fas fa-exclamation-triangle text-2xl text-white"></i>
         </div>
-        <h2 className="text-2xl font-bold mb-2">Activation Required</h2>
+        <h2 className="text-2xl font-bold mb-2">Build Configuration Error</h2>
         <p className={`max-w-md mb-8 text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-          To use Gemini 3 Pro reasoning, you must select a valid API key from a paid GCP project.
+          The `API_KEY` was not injected during the Vercel build process. Add the environment variable in your dashboard and <strong>Redeploy</strong>.
         </p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <button
             onClick={handleOpenKeySelection}
             className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg transition-all"
           >
-            Select API Key
+            {isAiStudioEnv ? 'Select API Key' : 'Troubleshoot Deployment'}
           </button>
           <a
-            href="https://ai.google.dev/gemini-api/docs/billing"
+            href="https://vercel.com/docs/concepts/projects/environment-variables"
             target="_blank"
             className="text-xs text-blue-500 hover:underline"
           >
-            Learn about billing & project setup
+            How to set Vercel Environment Variables
           </a>
         </div>
       </div>
@@ -357,7 +366,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ height: viewportHeight }} className={`flex flex-col transition-colors duration-300 overflow-hidden ${themeClasses.bg}`}>
+    <div style={{ height: viewportHeight }} className={`flex flex-col transition-colors duration-300 overflow-hidden ${themeClasses.bg} ${isDark ? 'dark-mode' : 'light-mode'}`}>
       <header className={`border-b p-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between z-10 shrink-0 ${themeClasses.header}`}>
         <button
           onClick={goHome}
@@ -632,15 +641,6 @@ export default function App() {
           </div>
         </div>
       </main>
-
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes menuIn { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        .animate-fadeIn { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-menuIn { animation: menuIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: ${isDark ? '#1e293b' : '#cbd5e1'}; border-radius: 10px; }
-      `}</style>
     </div>
   );
 }
