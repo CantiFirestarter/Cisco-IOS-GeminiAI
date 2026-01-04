@@ -23,45 +23,21 @@ FORMATTING RULES (CRITICAL - NO DEVIATION ALLOWED):
 6. Bold important networking concepts and key terms within the 'description' and 'usageContext' fields using double asterisks.
 7. In checklists, provide the command directly or after a colon using backticks.
 8. Examples MUST use standard CLI prompts and strictly follow the angle-bracket rule for placeholders.
-9. Always return your response as a valid JSON object.
+9. Always return a JSON object.
 `;
-
-/**
- * Utility to extract JSON from a potentially messy string response.
- * Useful when models wrap JSON in markdown or add conversational filler.
- */
-const extractJson = (text: string) => {
-  try {
-    // Try direct parse first
-    return JSON.parse(text);
-  } catch (e) {
-    // Try to find JSON block
-    const match = text.match(/\{[\s\S]*\}/);
-    if (match) {
-      try {
-        return JSON.parse(match[0]);
-      } catch (innerE) {
-        throw new Error("Could not parse extracted JSON block");
-      }
-    }
-    throw new Error("No valid JSON object found in response");
-  }
-};
 
 export const getCiscoCommandInfo = async (
   query: string, 
   fileData?: { data: string, mimeType: string }, 
   model: string = 'gemini-3-pro-preview', 
-  forceSearch: boolean = false
+  forceSearch: boolean = false,
+  voiceInput: boolean = false
 ) => {
-  // Use gemini-3-pro-image-preview for search tasks as per guidelines
-  const activeModel = forceSearch ? 'gemini-3-pro-image-preview' : model;
-  // Initialize GoogleGenAI right before use to ensure latest API Key
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const contents: any[] = [];
   const promptText = forceSearch 
-    ? `STRICT TECHNICAL SEARCH REQUIRED: Perform deep research into Cisco documentation for exact syntax, security hardening, and troubleshooting steps. Return the findings in the required JSON format: ${query}` 
+    ? `STRICT TECHNICAL SEARCH REQUIRED: Deep dive into Cisco documentation for syntax, security hardening, and troubleshooting: ${query}` 
     : query;
     
   const parts: any[] = [{ text: promptText }];
@@ -81,17 +57,14 @@ export const getCiscoCommandInfo = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: activeModel,
+      model: model,
       contents,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
-        // When using Search, we avoid strict MimeType/Schema if it causes issues, but we ask for JSON in prompt
-        responseMimeType: forceSearch ? undefined : "application/json",
-        tools: (activeModel.includes('pro') || forceSearch) ? [{ googleSearch: {} }] : undefined,
-        thinkingConfig: isComplex ? { 
-          thinkingBudget: activeModel.includes('pro') ? 32768 : 24576 
-        } : undefined,
-        responseSchema: forceSearch ? undefined : {
+        responseMimeType: "application/json",
+        tools: (model.includes('pro') || forceSearch) ? [{ googleSearch: {} }] : undefined,
+        thinkingConfig: (model.includes('pro') || model.includes('flash')) && isComplex ? { thinkingBudget: 12000 } : undefined,
+        responseSchema: {
           type: Type.OBJECT,
           properties: {
             reasoning: { type: Type.STRING },
@@ -114,7 +87,7 @@ export const getCiscoCommandInfo = async (
       },
     });
 
-    const result = extractJson(response.text || "");
+    const result = JSON.parse(response.text);
 
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks) {
@@ -131,7 +104,6 @@ export const getCiscoCommandInfo = async (
 };
 
 export const getDynamicSuggestions = async (history: string[]) => {
-  // Initialize GoogleGenAI right before use to ensure latest API Key
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const prompt = history.length > 0 
     ? `Based on recent queries: [${history.join(', ')}], suggest 4 professional Cisco follow-ups.`
@@ -150,7 +122,7 @@ export const getDynamicSuggestions = async (history: string[]) => {
         }
       }
     });
-    return JSON.parse(response.text || "[]");
+    return JSON.parse(response.text);
   } catch (error) {
     return ['BGP neighbor config', 'OSPF XR setup', 'VLAN interface', 'Show spanning-tree'];
   }
@@ -185,7 +157,6 @@ async function decodeAudioData(
 }
 
 export const synthesizeSpeech = async (text: string) => {
-  // Initialize GoogleGenAI right before use to ensure latest API Key
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-preview-tts",
@@ -203,6 +174,7 @@ export const synthesizeSpeech = async (text: string) => {
   if (!base64Audio) throw new Error("No audio data received");
   const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
   
+  // Ensure the context is running (required by some browsers after instantiation)
   if (audioCtx.state === 'suspended') {
     await audioCtx.resume();
   }

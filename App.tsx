@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { getCiscoCommandInfo, getDynamicSuggestions } from './services/geminiService';
 import ResultCard from './components/ResultCard';
@@ -146,10 +145,7 @@ export default function App() {
         const selected = await window.aistudio.hasSelectedApiKey();
         setHasApiKey(selected);
       } else {
-        // For Vercel/Standard: check if process.env.API_KEY actually exists
-        // (It might be "undefined" as a string if define was used incorrectly)
-        const key = process.env.API_KEY;
-        setHasApiKey(!!key && key !== "undefined");
+        setHasApiKey(true);
       }
       setIsCheckingKey(false);
     };
@@ -161,7 +157,7 @@ export default function App() {
       await window.aistudio.openSelectKey();
       setHasApiKey(true); 
     } else {
-      alert("Please ensure API_KEY is set in Vercel project settings and trigger a NEW deployment.");
+      alert("API Key selection is managed via environment variables in this deployment.");
     }
   };
 
@@ -292,21 +288,15 @@ export default function App() {
         metadata: result
       }]);
     } catch (error) {
-      console.error("Submit error:", error);
-      let errorMessage = "Synthesis failure. This usually occurs if the API key is invalid or the model capacity is exceeded.";
-      
-      if (!process.env.API_KEY || process.env.API_KEY === "undefined") {
-        errorMessage = "CRITICAL: API Key not found in build environment. Please add API_KEY to Vercel settings and RE-DEPLOY the application.";
-      } else if (error.message?.includes("Requested entity was not found")) {
-        errorMessage = isAiStudioEnv ? "API Key selection required. Re-authenticate via the header." : "Model access error. The selected model might be unavailable in your region or your API key lacks permission.";
-      } else if (error.message?.includes("No valid JSON")) {
-        errorMessage = "Protocol Analysis Error: The AI response could not be structured into the Cisco Command Schema. Try refining your query.";
+      if (error.message?.includes("Requested entity was not found") && isAiStudioEnv) {
+        setHasApiKey(false);
       }
-
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: errorMessage,
+        content: error.message?.includes("Requested entity was not found")
+          ? (isAiStudioEnv ? "API Key selection required. Please re-authenticate using the button in the header." : "API Key error. Please verify the environment variables in your Vercel project settings.")
+          : "Synthesis failure. This usually occurs if the API key is invalid or the model capacity is exceeded.",
         timestamp: Date.now(),
       }]);
     } finally {
@@ -330,29 +320,29 @@ export default function App() {
     suggestion: 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
   };
 
-  if (!hasApiKey && !isCheckingKey) {
+  if (!hasApiKey && !isCheckingKey && isAiStudioEnv) {
     return (
       <div style={{ height: viewportHeight }} className={`flex flex-col items-center justify-center p-6 text-center ${themeClasses.bg}`}>
-        <div className="bg-rose-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-2xl animate-pulse">
-          <i className="fas fa-exclamation-triangle text-2xl text-white"></i>
+        <div className="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-2xl">
+          <i className="fas fa-key text-2xl text-white"></i>
         </div>
-        <h2 className="text-2xl font-bold mb-2">Build Configuration Error</h2>
+        <h2 className="text-2xl font-bold mb-2">Activation Required</h2>
         <p className={`max-w-md mb-8 text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-          The `API_KEY` was not injected during the Vercel build process. Add the environment variable in your dashboard and <strong>Redeploy</strong>.
+          To use Gemini 3 Pro reasoning, you must select a valid API key from a paid GCP project.
         </p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <button
             onClick={handleOpenKeySelection}
             className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg transition-all"
           >
-            {isAiStudioEnv ? 'Select API Key' : 'Troubleshoot Deployment'}
+            Select API Key
           </button>
           <a
-            href="https://vercel.com/docs/concepts/projects/environment-variables"
+            href="https://ai.google.dev/gemini-api/docs/billing"
             target="_blank"
             className="text-xs text-blue-500 hover:underline"
           >
-            How to set Vercel Environment Variables
+            Learn about billing & project setup
           </a>
         </div>
       </div>
