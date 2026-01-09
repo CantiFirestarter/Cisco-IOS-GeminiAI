@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { getCiscoCommandInfo, getDynamicSuggestions } from './services/geminiService';
 import ResultCard from './components/ResultCard';
@@ -57,11 +58,24 @@ export default function App() {
   const [isListening, setIsListening] = useState(false);
   const [isResearchMode, setIsResearchMode] = useState(false);
 
+  // Command History Navigation State
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [draftValue, setDraftValue] = useState('');
+
   const clearTimerRef = useRef(null);
   const scrollRef = useRef(null);
   const menuRef = useRef(null);
   const fileInputRef = useRef(null);
   const recognitionRef = useRef(null);
+
+  // Extract unique user prompts for arrow key navigation
+  const userPromptHistory = useMemo(() => {
+    const prompts = messages
+      .filter(m => m.role === 'user' && !m.content.startsWith('Analyze attached'))
+      .map(m => m.content);
+    // Return unique prompts in reverse order (newest first)
+    return Array.from(new Set(prompts)).reverse();
+  }, [messages]);
 
   useEffect(() => {
     if (!window.visualViewport) return;
@@ -233,6 +247,8 @@ export default function App() {
     setDynamicSuggestions(DEFAULT_SUGGESTIONS);
     setClearConfirmState(false);
     setView('home');
+    setHistoryIndex(-1);
+    setDraftValue('');
     if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
   };
 
@@ -249,6 +265,36 @@ export default function App() {
 
   const handleSuggestionClick = (suggestion) => {
     setInputValue(suggestion);
+    setHistoryIndex(-1);
+  };
+
+  // Keyboard navigation logic
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (userPromptHistory.length === 0) return;
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const nextIndex = historyIndex + 1;
+      
+      if (nextIndex < userPromptHistory.length) {
+        if (historyIndex === -1) {
+          setDraftValue(inputValue);
+        }
+        setHistoryIndex(nextIndex);
+        setInputValue(userPromptHistory[nextIndex]);
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const nextIndex = historyIndex - 1;
+      
+      if (nextIndex >= 0) {
+        setHistoryIndex(nextIndex);
+        setInputValue(userPromptHistory[nextIndex]);
+      } else if (nextIndex === -1) {
+        setHistoryIndex(-1);
+        setInputValue(draftValue);
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -267,6 +313,8 @@ export default function App() {
 
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
+    setHistoryIndex(-1);
+    setDraftValue('');
     setAttachedFile(null);
     setIsLoading(true);
     setView('chat');
@@ -599,7 +647,8 @@ export default function App() {
                 <input
                   type="text"
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={(e) => { setInputValue(e.target.value); setHistoryIndex(-1); }}
+                  onKeyDown={handleKeyDown}
                   placeholder={attachedFile ? `Analysing ${attachedFile.name}...` : (isResearchMode ? "Searching Cisco Live..." : "Enter CLI Command...")}
                   className={`w-full py-2.5 sm:py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs sm:text-sm transition-all ${themeClasses.input} ${
                     attachedFile ? 'pl-32 sm:pl-44' : 'pl-12'
