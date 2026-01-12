@@ -3,33 +3,28 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = `
 You are an expert Cisco AI assistant (Cisco CLI Expert).
-Your role is to provide precise, consistent, and deterministic technical documentation for Cisco IOS, IOS XE, and IOS XR.
+Your role is to provide precise, consistent, and deterministic technical documentation and architectural guidance for Cisco IOS, IOS XE, and IOS XR.
+
+OPERATIONAL MODES:
+1. COMMAND REFERENCE MODE: If the user asks for a specific command or syntax. Provide the full grid of technical details.
+2. TECHNICAL Q&A MODE: If the user asks a conceptual, design, or "How-to" question (e.g., "What is the difference between...", "How do I design..."). 
+   - Set 'isTechnicalQuestion' to true.
+   - Populate 'generalAnswer' with a detailed, structured technical explanation using Markdown.
+   - Still provide 'examples' and 'troubleshooting' if applicable.
+   - Set command-specific fields (like syntax) to "N/A" if they don't apply.
 
 DETERMINISM ENFORCEMENT:
-- You are a technical reference manual, not a creative writer.
-- For identical commands, always provide the exact same definitions, syntax, and guidelines.
-- Do not vary phrasing for variety. Use the most technically accurate and concise standard phrasing.
+- You are a technical reference manual. Use technically accurate and concise standard phrasing.
 - If a command's function is "Enables BGP routing," always use that exact phrase.
 
-SCOPE ENFORCEMENT:
-- You are strictly limited to Cisco networking, CLI commands, network design, and troubleshooting.
-- If a query is NOT related to networking, infrastructure, or Cisco technology, set 'isOutOfScope' to true.
-
 RESEARCH PROTOCOL:
-- If a user asks about a specific command and there is ambiguity, you MUST use the googleSearch tool.
+- If a user asks about a specific command or a complex design scenario, you MUST use the googleSearch tool.
 
 FORMATTING RULES (CRITICAL):
 1. Wrap ALL CLI commands, keywords, and variables in backticks (\`), EXCEPT within the 'examples' field.
 2. Use angle brackets for variables and placeholders (e.g., <vlan-id>).
-3. If a variable contains choices, use a pipe (|) separator: <in|out>.
-4. NEVER use single quotes or parentheses around commands.
-5. For 'options', use: \`- \`command\` : description\`.
-6. Bold important concepts with double asterisks.
-7. Examples MUST use raw terminal text. NO backticks (\`) allowed in the 'examples' field.
-8. Always return a JSON object.
-
-CONTENT SPECIFICS:
-- 'usageGuidelines': Provide operational best practices, performance impact warnings, or deployment recommendations.
+3. Examples MUST use raw terminal text. NO backticks (\`) allowed in the 'examples' field.
+4. Always return a JSON object.
 `;
 
 export const getCiscoCommandInfo = async (
@@ -39,6 +34,7 @@ export const getCiscoCommandInfo = async (
   forceSearch: boolean = false,
   voiceInput: boolean = false
 ) => {
+  // Correctly initialize GoogleGenAI with named parameter apiKey
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const contents: any[] = [];
@@ -59,18 +55,18 @@ export const getCiscoCommandInfo = async (
   
   contents.push({ parts });
 
-  const isComplex = forceSearch || query.length > 80 || query.toLowerCase().includes('design') || query.toLowerCase().includes('troubleshoot');
+  const isComplex = forceSearch || query.length > 80 || query.toLowerCase().includes('design') || query.toLowerCase().includes('troubleshoot') || query.toLowerCase().includes('difference');
 
   try {
+    // Call generateContent directly using ai.models.generateContent
     const response = await ai.models.generateContent({
       model: model,
       contents,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
-        // DETERMINISM CONFIGURATION
-        temperature: 0.1, // Near-zero for deterministic output
-        seed: 42,        // Fixed seed for reproducibility
+        temperature: 0.1,
+        seed: 42,
         tools: (model.includes('pro') || forceSearch) ? [{ googleSearch: {} }] : undefined,
         thinkingConfig: (model.includes('pro') || model.includes('flash')) && isComplex ? { thinkingBudget: 12000 } : undefined,
         responseSchema: {
@@ -78,6 +74,8 @@ export const getCiscoCommandInfo = async (
           properties: {
             reasoning: { type: Type.STRING },
             isOutOfScope: { type: Type.BOOLEAN },
+            isTechnicalQuestion: { type: Type.BOOLEAN },
+            generalAnswer: { type: Type.STRING, description: "Main text for conceptual or design questions." },
             deviceCategory: { type: Type.STRING },
             commandMode: { type: Type.STRING },
             syntax: { type: Type.STRING },
@@ -92,13 +90,13 @@ export const getCiscoCommandInfo = async (
             examples: { type: Type.STRING },
             correction: { type: Type.STRING },
           },
-          // Fixed property ordering ensures the model generates fields in a consistent logical flow
-          propertyOrdering: ["reasoning", "isOutOfScope", "deviceCategory", "commandMode", "syntax", "description", "usageContext", "usageGuidelines", "checklist", "options", "troubleshooting", "security", "notes", "examples", "correction"],
+          propertyOrdering: ["reasoning", "isOutOfScope", "isTechnicalQuestion", "generalAnswer", "deviceCategory", "commandMode", "syntax", "description", "usageContext", "usageGuidelines", "checklist", "options", "troubleshooting", "security", "notes", "examples", "correction"],
           required: ["reasoning", "isOutOfScope", "deviceCategory", "commandMode", "syntax", "description", "usageContext", "usageGuidelines", "checklist", "options", "troubleshooting", "security", "notes", "examples"]
         }
       },
     });
 
+    // Access text property directly
     const result = JSON.parse(response.text);
 
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
@@ -118,8 +116,8 @@ export const getCiscoCommandInfo = async (
 export const getDynamicSuggestions = async (history: string[]) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const prompt = history.length > 0 
-    ? `Based on recent queries: [${history.join(', ')}], suggest 4 professional Cisco follow-ups.`
-    : "Suggest 4 foundational Cisco CLI topics.";
+    ? `Based on recent queries: [${history.join(', ')}], suggest 4 professional Cisco follow-ups. Mix specific commands with high-level design questions.`
+    : "Suggest 4 foundational Cisco CLI topics or technical questions.";
 
   try {
     const response = await ai.models.generateContent({
@@ -138,10 +136,11 @@ export const getDynamicSuggestions = async (history: string[]) => {
     });
     return JSON.parse(response.text);
   } catch (error) {
-    return ['BGP neighbor config', 'OSPF XR setup', 'VLAN interface', 'Show spanning-tree'];
+    return ['BGP neighbor config', 'OSPF vs EIGRP', 'SD-WAN basics', 'VLAN design best practices'];
   }
 };
 
+// Manually implemented decoding function as per guidelines
 function decodeBase64(base64: string) {
   const binaryString = atob(base64);
   const len = binaryString.length;
@@ -152,6 +151,7 @@ function decodeBase64(base64: string) {
   return bytes;
 }
 
+// Custom PCM decoding function as per guidelines
 async function decodeAudioData(
   data: Uint8Array,
   ctx: AudioContext,

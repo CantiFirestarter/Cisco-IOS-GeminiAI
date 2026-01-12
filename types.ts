@@ -6,10 +6,12 @@ export interface GroundingSource {
 
 export interface CiscoQueryResponse {
   reasoning: string;
+  isTechnicalQuestion?: boolean; // New: Identifies conceptual queries
+  generalAnswer?: string;       // New: Long-form answer for conceptual queries
   syntax: string;
   description: string;
   usageContext: string;
-  usageGuidelines: string; // New field for best practices and operational rules
+  usageGuidelines: string;
   checklist: string;
   options: string;
   troubleshooting: string;
@@ -20,7 +22,7 @@ export interface CiscoQueryResponse {
   commandMode: string;
   correction?: string;
   sources?: GroundingSource[];
-  isOutOfScope?: boolean; // Flag for non-Cisco queries
+  isOutOfScope?: boolean;
 }
 
 export interface ChatMessage {
