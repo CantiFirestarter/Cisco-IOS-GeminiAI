@@ -27,6 +27,15 @@ FORMATTING RULES (CRITICAL):
 4. Always return a JSON object.
 `;
 
+// Helper to retrieve the best available API key
+const getApiKey = () => {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('cisco_expert_api_key');
+    if (stored) return stored;
+  }
+  return process.env.API_KEY || '';
+};
+
 export const getCiscoCommandInfo = async (
   query: string, 
   fileData?: { data: string, mimeType: string }, 
@@ -34,8 +43,8 @@ export const getCiscoCommandInfo = async (
   forceSearch: boolean = false,
   voiceInput: boolean = false
 ) => {
-  // Correctly initialize GoogleGenAI with named parameter apiKey
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Use dynamic key retrieval
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   
   const contents: any[] = [];
   const promptText = forceSearch 
@@ -58,7 +67,6 @@ export const getCiscoCommandInfo = async (
   const isComplex = forceSearch || query.length > 80 || query.toLowerCase().includes('design') || query.toLowerCase().includes('troubleshoot') || query.toLowerCase().includes('difference');
 
   try {
-    // Call generateContent directly using ai.models.generateContent
     const response = await ai.models.generateContent({
       model: model,
       contents,
@@ -96,7 +104,6 @@ export const getCiscoCommandInfo = async (
       },
     });
 
-    // Access text property directly
     const result = JSON.parse(response.text);
 
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
@@ -114,7 +121,7 @@ export const getCiscoCommandInfo = async (
 };
 
 export const getDynamicSuggestions = async (history: string[]) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   const prompt = history.length > 0 
     ? `Based on recent queries: [${history.join(', ')}], suggest 4 professional Cisco follow-ups. Mix specific commands with high-level design questions.`
     : "Suggest 4 foundational Cisco CLI topics or technical questions.";
@@ -140,7 +147,6 @@ export const getDynamicSuggestions = async (history: string[]) => {
   }
 };
 
-// Manually implemented decoding function as per guidelines
 function decodeBase64(base64: string) {
   const binaryString = atob(base64);
   const len = binaryString.length;
@@ -151,7 +157,6 @@ function decodeBase64(base64: string) {
   return bytes;
 }
 
-// Custom PCM decoding function as per guidelines
 async function decodeAudioData(
   data: Uint8Array,
   ctx: AudioContext,
@@ -171,7 +176,7 @@ async function decodeAudioData(
 }
 
 export const synthesizeSpeech = async (text: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-preview-tts",
     contents: [{ parts: [{ text: `Say in a professional, technical voice: ${text}` }] }],

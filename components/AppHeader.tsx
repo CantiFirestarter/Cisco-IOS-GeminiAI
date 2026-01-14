@@ -15,7 +15,8 @@ export default function AppHeader({
   setSelectedModel, 
   isResearchMode, 
   setIsResearchMode,
-  themeClasses
+  themeClasses,
+  handleDisconnectKey
 }: any) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -29,6 +30,8 @@ export default function AppHeader({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const hasUserKey = typeof window !== 'undefined' && localStorage.getItem('cisco_expert_api_key');
 
   return (
     <header className={`border-b p-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between z-10 shrink-0 ${themeClasses.header}`}>
@@ -45,6 +48,12 @@ export default function AppHeader({
         </button>
         
         <button onClick={() => setIsDark(!isDark)} className={`p-1.5 sm:p-2 rounded-xl border w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center ${themeClasses.util}`}><i className={`fas ${isDark ? 'fa-sun text-amber-400' : 'fa-moon'} text-xs sm:text-sm`}></i></button>
+
+        {hasUserKey && (
+          <button onClick={handleDisconnectKey} title="Disconnect API Key" className={`p-1.5 sm:p-2 rounded-xl border w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center ${themeClasses.util} text-rose-500 hover:bg-rose-500/10 border-rose-500/20`}>
+            <i className="fas fa-key text-xs sm:text-sm"></i>
+          </button>
+        )}
 
         <button onClick={handleGoogleAuth} className={`p-1.5 sm:p-2 rounded-xl border w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center transition-all ${themeClasses.util} ${googleUser ? 'border-emerald-500/50' : ''}`} title={googleUser ? "Syncing with Cloud" : "Sign in to Sync with Google Drive"}>
           <i className={`fab fa-google text-xs sm:text-sm ${googleUser ? 'text-emerald-500' : ''} ${isSyncing ? 'animate-spin' : ''}`}></i>

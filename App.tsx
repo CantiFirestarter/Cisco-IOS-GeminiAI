@@ -22,8 +22,10 @@ export default function App() {
   });
 
   const [view, setView] = useState(() => (messages.length === 0 ? 'home' : 'chat'));
-  const [hasApiKey, setHasApiKey] = useState(true); 
+  const [hasApiKey, setHasApiKey] = useState(false); 
   const [isCheckingKey, setIsCheckingKey] = useState(true);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  
   const [viewportHeight, setViewportHeight] = useState('100dvh');
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -44,8 +46,29 @@ export default function App() {
 
   useEffect(() => {
     const checkKey = async () => {
+      // 1. Check Local Storage (User Key)
+      const localKey = localStorage.getItem('cisco_expert_api_key');
+      if (localKey) {
+        setHasApiKey(true);
+        setIsCheckingKey(false);
+        return;
+      }
+
+      // 2. Check Environment Variable (Developer/Built Key)
+      if (process.env.API_KEY) {
+        setHasApiKey(true);
+        setIsCheckingKey(false);
+        return;
+      }
+
+      // 3. Fallback to IDX / AI Studio check
       const isStudio = !!(window as any).aistudio?.hasSelectedApiKey;
-      if (isStudio) setHasApiKey(await (window as any).aistudio.hasSelectedApiKey());
+      if (isStudio) {
+        const has = await (window as any).aistudio.hasSelectedApiKey();
+        setHasApiKey(has);
+      } else {
+        setHasApiKey(false);
+      }
       setIsCheckingKey(false);
     };
     checkKey();
@@ -64,6 +87,29 @@ export default function App() {
   }, []);
 
   const userPromptHistory = useMemo(() => messages.filter(m => m.role === 'user').map(m => m.content).reverse(), [messages]);
+
+  const handleSaveKey = () => {
+    if (apiKeyInput.trim()) {
+      localStorage.setItem('cisco_expert_api_key', apiKeyInput.trim());
+      setHasApiKey(true);
+    }
+  };
+
+  const handleDisconnectKey = () => {
+    if (window.confirm("Disconnect your API Key? This will require you to re-enter it to use the app.")) {
+      localStorage.removeItem('cisco_expert_api_key');
+      // If no env key exists, this will trigger the lock screen
+      if (!process.env.API_KEY) {
+        setHasApiKey(false);
+        setApiKeyInput('');
+      } else {
+         // If env key exists, we technically still have a key, so we stay logged in but rely on env
+         // But to give visual feedback, we force a reload or UI refresh
+         alert("User key removed. Reverting to system key if available.");
+         window.location.reload();
+      }
+    }
+  };
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -87,7 +133,7 @@ export default function App() {
       setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: `Analysis complete.`, timestamp: Date.now(), metadata: res }]);
     } catch (error: any) {
       if (error.message?.includes("Requested entity was not found") && (window as any).aistudio) setHasApiKey(false);
-      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: "Synthesis failure.", timestamp: Date.now() }]);
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: "Synthesis failure. Please verify your network or API key.", timestamp: Date.now() }]);
     } finally {
       setIsLoading(false);
     }
@@ -124,12 +170,60 @@ export default function App() {
     suggestion: 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
   };
 
-  if (!hasApiKey && !isCheckingKey && (window as any).aistudio) {
+  if (!hasApiKey && !isCheckingKey) {
     return (
       <div style={{ height: viewportHeight }} className={`flex flex-col items-center justify-center p-6 text-center ${themeClasses.bg}`}>
-        <div className="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-2xl"><i className="fas fa-key text-2xl text-white"></i></div>
-        <h2 className="text-2xl font-bold mb-2">Activation Required</h2>
-        <button onClick={() => (window as any).aistudio.openSelectKey().then(() => setHasApiKey(true))} className="py-3 px-8 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg transition-all">Select API Key</button>
+        <div className="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-2xl animate-fadeIn">
+          <i className="fas fa-shield-alt text-2xl text-white"></i>
+        </div>
+        
+        <h2 className="text-2xl font-bold mb-2">Initialize Neural Engine</h2>
+        <p className="max-w-xs mx-auto mb-8 text-sm opacity-70 leading-relaxed">
+          This application runs locally in your browser. Connect your Gemini API key to activate the expert system.
+        </p>
+
+        <div className="w-full max-w-sm space-y-4 animate-fadeIn">
+          <a 
+            href="https://aistudio.google.com/app/apikey" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className={`block w-full py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 ${isDark ? 'bg-slate-900 border-slate-800 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+          >
+            <span>Get Free API Key</span>
+            <i className="fas fa-external-link-alt text-xs opacity-50"></i>
+          </a>
+
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <i className="fas fa-key text-xs opacity-40"></i>
+            </div>
+            <input
+              type="password"
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
+              placeholder="Paste your API key (sk-...)"
+              className={`w-full py-3.5 pl-10 pr-4 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm transition-all ${themeClasses.input}`}
+            />
+          </div>
+
+          <button 
+            onClick={handleSaveKey}
+            disabled={!apiKeyInput.trim()}
+            className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2"
+          >
+            <span>Connect System</span>
+            <i className="fas fa-arrow-right"></i>
+          </button>
+          
+          {(window as any).aistudio && (
+             <button onClick={() => (window as any).aistudio.openSelectKey().then(() => setHasApiKey(true))} className={`mt-4 w-full py-2 rounded-xl border border-dashed text-xs opacity-60 hover:opacity-100 ${isDark ? 'border-slate-800' : 'border-slate-300'}`}>Use IDX/Studio Key</button>
+          )}
+
+          <p className="text-[10px] opacity-40 mt-6 max-w-[280px] mx-auto">
+            <i className="fas fa-lock mr-1"></i>
+            Keys are stored securely in your browser's local storage. Free keys may use data for model training.
+          </p>
+        </div>
       </div>
     );
   }
@@ -143,6 +237,7 @@ export default function App() {
         handleGoogleAuth={handleGoogleAuth} googleUser={googleUser} isSyncing={isSyncing}
         selectedModel={selectedModel} setSelectedModel={setSelectedModel}
         isResearchMode={isResearchMode} setIsResearchMode={setIsResearchMode} themeClasses={themeClasses}
+        handleDisconnectKey={handleDisconnectKey}
       />
 
       <main className="flex-1 overflow-hidden relative flex flex-col max-w-5xl mx-auto w-full">
