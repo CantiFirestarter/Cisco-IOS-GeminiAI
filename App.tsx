@@ -182,12 +182,12 @@ export default function App() {
     return (
       <div style={{ height: viewportHeight }} className={`flex flex-col items-center justify-center p-6 text-center ${themeClasses.bg}`}>
         <div className="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-2xl animate-fadeIn">
-          <i className="fas fa-shield-alt text-2xl text-white"></i>
+          <i className="fas fa-link text-2xl text-white"></i>
         </div>
         
-        <h2 className="text-2xl font-bold mb-2">Initialize Neural Engine</h2>
+        <h2 className="text-2xl font-bold mb-2">Gemini API Connectivity</h2>
         <p className="max-w-xs mx-auto mb-8 text-sm opacity-70 leading-relaxed">
-          This application runs locally in your browser. Connect your Gemini API key to activate the expert system.
+          To provide real-time Cisco intelligence, this app needs your Google Gemini API key. Your credentials and terminal history remain local and secure.
         </p>
 
         <div className="w-full max-w-sm space-y-4 animate-fadeIn">
@@ -234,11 +234,11 @@ export default function App() {
             } text-white disabled:opacity-50`}
           >
             {validationStatus === 'checking' ? (
-              <><i className="fas fa-circle-notch fa-spin"></i><span>Verifying...</span></>
+              <><i className="fas fa-circle-notch fa-spin"></i><span>Verifying Uplink...</span></>
             ) : validationStatus === 'success' ? (
-              <><i className="fas fa-check"></i><span>Connection Established</span></>
+              <><i className="fas fa-check"></i><span>Connectivity Established</span></>
             ) : (
-              <><i className="fas fa-bolt"></i><span>Connect System</span></>
+              <><i className="fas fa-bolt"></i><span>Connect to Gemini</span></>
             )}
           </button>
           
