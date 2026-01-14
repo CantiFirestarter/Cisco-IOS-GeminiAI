@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { getCiscoCommandInfo, getDynamicSuggestions } from './services/geminiService';
+import { getCiscoCommandInfo, getDynamicSuggestions, validateApiKey } from './services/geminiService';
 import ResultCard from './components/ResultCard';
 import AppHeader from './components/AppHeader';
 import AppFooter from './components/AppFooter';
@@ -25,6 +25,8 @@ export default function App() {
   const [hasApiKey, setHasApiKey] = useState(false); 
   const [isCheckingKey, setIsCheckingKey] = useState(true);
   const [apiKeyInput, setApiKeyInput] = useState('');
+  const [validationStatus, setValidationStatus] = useState<'idle' | 'checking' | 'success' | 'error'>('idle');
+  const [validationError, setValidationError] = useState('');
   
   const [viewportHeight, setViewportHeight] = useState('100dvh');
   const [inputValue, setInputValue] = useState('');
@@ -46,7 +48,6 @@ export default function App() {
 
   useEffect(() => {
     const checkKey = async () => {
-      // 1. Check Local Storage (User Key)
       const localKey = localStorage.getItem('cisco_expert_api_key');
       if (localKey) {
         setHasApiKey(true);
@@ -54,14 +55,12 @@ export default function App() {
         return;
       }
 
-      // 2. Check Environment Variable (Developer/Built Key)
       if (process.env.API_KEY) {
         setHasApiKey(true);
         setIsCheckingKey(false);
         return;
       }
 
-      // 3. Fallback to IDX / AI Studio check
       const isStudio = !!(window as any).aistudio?.hasSelectedApiKey;
       if (isStudio) {
         const has = await (window as any).aistudio.hasSelectedApiKey();
@@ -88,23 +87,32 @@ export default function App() {
 
   const userPromptHistory = useMemo(() => messages.filter(m => m.role === 'user').map(m => m.content).reverse(), [messages]);
 
-  const handleSaveKey = () => {
-    if (apiKeyInput.trim()) {
-      localStorage.setItem('cisco_expert_api_key', apiKeyInput.trim());
-      setHasApiKey(true);
+  const handleVerifyAndSave = async () => {
+    if (!apiKeyInput.trim()) return;
+    setValidationStatus('checking');
+    setValidationError('');
+    
+    const result = await validateApiKey(apiKeyInput.trim());
+    if (result.success) {
+      setValidationStatus('success');
+      setTimeout(() => {
+        localStorage.setItem('cisco_expert_api_key', apiKeyInput.trim());
+        setHasApiKey(true);
+      }, 800);
+    } else {
+      setValidationStatus('error');
+      setValidationError(result.message);
     }
   };
 
   const handleDisconnectKey = () => {
     if (window.confirm("Disconnect your API Key? This will require you to re-enter it to use the app.")) {
       localStorage.removeItem('cisco_expert_api_key');
-      // If no env key exists, this will trigger the lock screen
       if (!process.env.API_KEY) {
         setHasApiKey(false);
         setApiKeyInput('');
+        setValidationStatus('idle');
       } else {
-         // If env key exists, we technically still have a key, so we stay logged in but rely on env
-         // But to give visual feedback, we force a reload or UI refresh
          alert("User key removed. Reverting to system key if available.");
          window.location.reload();
       }
@@ -200,19 +208,38 @@ export default function App() {
             <input
               type="password"
               value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
+              onChange={(e) => {
+                setApiKeyInput(e.target.value);
+                if (validationStatus !== 'idle') setValidationStatus('idle');
+              }}
               placeholder="Paste your API key (sk-...)"
-              className={`w-full py-3.5 pl-10 pr-4 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm transition-all ${themeClasses.input}`}
+              className={`w-full py-3.5 pl-10 pr-4 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm transition-all ${themeClasses.input} ${validationStatus === 'error' ? 'border-rose-500/50' : validationStatus === 'success' ? 'border-emerald-500/50' : ''}`}
             />
           </div>
 
+          {validationStatus === 'error' && (
+            <div className="text-[10px] text-rose-500 font-bold bg-rose-500/10 py-2 rounded-lg border border-rose-500/20 px-3 flex items-center gap-2">
+              <i className="fas fa-exclamation-circle"></i>
+              {validationError || "Verification Failed"}
+            </div>
+          )}
+
           <button 
-            onClick={handleSaveKey}
-            disabled={!apiKeyInput.trim()}
-            className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2"
+            onClick={handleVerifyAndSave}
+            disabled={!apiKeyInput.trim() || validationStatus === 'checking'}
+            className={`w-full py-3.5 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${
+              validationStatus === 'checking' ? 'bg-slate-700' :
+              validationStatus === 'success' ? 'bg-emerald-600' :
+              'bg-blue-600 hover:bg-blue-500'
+            } text-white disabled:opacity-50`}
           >
-            <span>Connect System</span>
-            <i className="fas fa-arrow-right"></i>
+            {validationStatus === 'checking' ? (
+              <><i className="fas fa-circle-notch fa-spin"></i><span>Verifying...</span></>
+            ) : validationStatus === 'success' ? (
+              <><i className="fas fa-check"></i><span>Connection Established</span></>
+            ) : (
+              <><i className="fas fa-bolt"></i><span>Connect System</span></>
+            )}
           </button>
           
           {(window as any).aistudio && (

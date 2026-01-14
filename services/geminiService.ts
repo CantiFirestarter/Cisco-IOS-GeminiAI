@@ -27,13 +27,31 @@ FORMATTING RULES (CRITICAL):
 4. Always return a JSON object.
 `;
 
-// Helper to retrieve the best available API key
 const getApiKey = () => {
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem('cisco_expert_api_key');
     if (stored) return stored;
   }
   return process.env.API_KEY || '';
+};
+
+/**
+ * Lightweight check to see if the provided API key works.
+ */
+export const validateApiKey = async (testKey: string) => {
+  try {
+    const ai = new GoogleGenAI({ apiKey: testKey });
+    // Use the fastest model for a tiny check
+    await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [{ parts: [{ text: 'ping' }] }],
+      config: { maxOutputTokens: 1 }
+    });
+    return { success: true };
+  } catch (error: any) {
+    console.error("Validation Error:", error);
+    return { success: false, message: error.message || "Invalid API Key" };
+  }
 };
 
 export const getCiscoCommandInfo = async (
@@ -43,7 +61,6 @@ export const getCiscoCommandInfo = async (
   forceSearch: boolean = false,
   voiceInput: boolean = false
 ) => {
-  // Use dynamic key retrieval
   const ai = new GoogleGenAI({ apiKey: getApiKey() });
   
   const contents: any[] = [];
