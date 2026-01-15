@@ -24,7 +24,7 @@ export function useGoogleSync(messages: any[], suggestions: string[], setMessage
 
     const initGsi = () => {
       const google = (window as any).google;
-      const clientId = process.env.GOOGLE_CLIENT_ID || '678219377220-6v70o81vicrobq6scmpnr9p4v3nt9mdl.apps.googleusercontent.com';
+      const clientId = process.env.GOOGLE_CLIENT_ID || '11845753477-tue9ssv4n7e084el9a5kcepef71imh8s.apps.googleusercontent.com';
       
       if (!google) return;
       try {
