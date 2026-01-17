@@ -1,4 +1,10 @@
 
+/**
+ * Cisco CLI Command Expert - Main Application Orchestrator
+ * Copyright (c) 2026 Firestarter Forge
+ * Author: Canti Firestarter <canti@firestartforge.dev>
+ */
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { getCiscoCommandInfo, getDynamicSuggestions } from './services/geminiService';
 import ResultCard from './components/ResultCard';

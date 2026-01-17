@@ -1,3 +1,11 @@
+
+/**
+ * Cisco CLI Command Expert
+ * Copyright (c) 2026 Firestarter Forge
+ * Author: Canti Firestarter <canti@firestartforge.dev>
+ * License: MIT
+ */
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';

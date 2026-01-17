@@ -1,4 +1,10 @@
 
+/**
+ * Cisco CLI Command Expert - Gemini API Service Layer
+ * Copyright (c) 2026 Firestarter Forge
+ * Author: Canti Firestarter <canti@firestartforge.dev>
+ */
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = `

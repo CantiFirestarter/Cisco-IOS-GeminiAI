@@ -1,3 +1,9 @@
+
+/**
+ * Cisco CLI Command Expert - Styles
+ * Copyright (c) 2026 Firestarter Forge
+ */
+
 :root {
   --sat: env(safe-area-inset-top);
   --sar: env(safe-area-inset-right);

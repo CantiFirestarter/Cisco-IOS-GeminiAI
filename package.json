@@ -3,6 +3,9 @@
   "name": "cisco-cli-ai-expert",
   "private": true,
   "version": "1.0.0",
+  "author": "Canti Firestarter <canti@firestartforge.dev> (https://firestarterforge.dev)",
+  "license": "MIT",
+  "homepage": "https://firestarterforge.dev",
   "type": "module",
   "scripts": {
     "dev": "vite",
