@@ -43,7 +43,20 @@ A specialized component for parsing technical CLI data:
 - **Syntax Highlighting**: Custom regex-based highlighting for Cisco keywords and variables.
 - **Interactive Elements**: Copy-to-clipboard, text-to-speech (TTS) for accessibility, and logic reasoning toggles.
 
-## 4. Data Flow
+## 4. Deployment & Hosting
+
+The application is built as a static site and can be deployed to modern edge platforms.
+
+### 4.1 Vercel
+- Handled via `vercel.json` for routing and headers.
+- Automatic CD via Git integration.
+
+### 4.2 Cloudflare Workers
+- Handled via `wrangler.json` and `worker.ts`.
+- Uses the **Workers + Assets** architecture.
+- The `worker.ts` script manages SPA routing (404 fallback to `index.html`) and injects security headers.
+
+## 5. Data Flow
 
 1. **Input**: User enters a query or uploads a file/image.
 2. **Context Assembly**: `App.tsx` bundles the query with any attached media.
@@ -53,7 +66,7 @@ A specialized component for parsing technical CLI data:
 6. **Rendering**: `ResultCard` decomposes the JSON into logical sections (Syntax, Troubleshooting, Security, etc.).
 7. **Persistence**: The new message is saved to `localStorage` and asynchronously patched to Google Drive.
 
-## 5. Security & Privacy
+## 6. Security & Privacy
 
 ### API Key Handling
 - In development/sandbox environments, keys are managed via `process.env`.
@@ -63,7 +76,7 @@ A specialized component for parsing technical CLI data:
 - **OAuth 2.0**: Uses Google Services Identity (GSI) for secure, scoped access to Google Drive.
 - **Scoped Permissions**: Only requests `drive.appdata` access, preventing the app from seeing the user's regular Drive files.
 
-## 6. Determinism & Accuracy Protocols
+## 7. Determinism & Accuracy Protocols
 
 To combat AI "hallucinations" in critical network environments:
 - **Low Temperature**: Set to `0.1` to favor the most likely technical tokens.

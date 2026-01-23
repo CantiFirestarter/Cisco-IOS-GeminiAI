@@ -26,11 +26,12 @@ DETERMINISM ENFORCEMENT:
 RESEARCH PROTOCOL:
 - If a user asks about a specific command or a complex design scenario, you MUST use the googleSearch tool.
 
-FORMATTING RULES (CRITICAL):
-1. Wrap ALL CLI commands, keywords, and variables in backticks (\`), EXCEPT within the 'examples' field.
-2. Use angle brackets for variables and placeholders (e.g., <vlan-id>).
-3. Examples MUST use raw terminal text. NO backticks (\`) allowed in the 'examples' field.
-4. Always return a JSON object.
+FORMATTING RULES (STRICT):
+1. Wrap ALL CLI commands, keywords, and variables in backticks (\`) ONLY in technical reference fields (syntax, options, etc.).
+2. 'generalAnswer' (Architectural Synthesis) MUST NEVER contain backticks (\`). Use **bold** (double asterisks) for ALL technical keywords, command names, and emphasis within this section.
+3. Use angle brackets for variables and placeholders (e.g., <vlan-id>).
+4. 'examples' MUST use raw terminal text without backticks.
+5. Always return a JSON object.
 `;
 
 const getApiKey = () => {
@@ -106,7 +107,7 @@ export const getCiscoCommandInfo = async (
             reasoning: { type: Type.STRING },
             isOutOfScope: { type: Type.BOOLEAN },
             isTechnicalQuestion: { type: Type.BOOLEAN },
-            generalAnswer: { type: Type.STRING, description: "Main text for conceptual or design questions." },
+            generalAnswer: { type: Type.STRING, description: "Main text for conceptual or design questions. STICTLY NO BACKTICKS. Use bolding instead." },
             deviceCategory: { type: Type.STRING },
             commandMode: { type: Type.STRING },
             syntax: { type: Type.STRING },

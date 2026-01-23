@@ -11,6 +11,7 @@ This document outlines the planned trajectory for the Cisco CLI AI Expert. Our g
 - [x] Local-first architecture with optional Google Drive Sync.
 - [x] Multi-modal support (Voice input, Image analysis for network diagrams).
 - [x] Onboarding flow for personal Gemini API key management.
+- [x] **Deployment support for Cloudflare Workers (Workers + Assets).**
 
 ## 🛠 Phase 2: Enhanced Operability (Q1-Q2 2026)
 *Focus: Efficiency and Practical Utility*
