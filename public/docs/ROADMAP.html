@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roadmap - Cisco IOS AI</title>
+    <style>
+        :root { --bg: #020617; --text: #f8fafc; --muted: #94a3b8; --accent: #2563eb; --border: #1e293b; --success: #10b981; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem 1rem; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1, h2 { color: var(--accent); font-weight: 700; margin-top: 3rem; }
+        h1 { font-size: 2.25rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; margin-top: 0; }
+        .phase { margin-bottom: 3rem; }
+        .phase h2 { font-size: 1.5rem; margin-bottom: 1rem; }
+        ul { list-style: none; padding: 0; }
+        li { padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 0.5rem; background: #0f172a; border: 1px solid var(--border); display: flex; align-items: flex-start; gap: 0.75rem; }
+        .status { font-weight: 800; font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 100px; text-transform: uppercase; }
+        .done { color: var(--success); border: 1px solid var(--success); }
+        .todo { color: var(--muted); border: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Strategic Roadmap</h1>
+        <p>Evolving from a documentation synthesizer into an active configuration and design partner.</p>
+
+        <div class="phase">
+            <h2>Phase 1: Foundations (Current)</h2>
+            <ul>
+                <li><span class="status done">Done</span> <span>Deterministic command synthesis for IOS.</span></li>
+                <li><span class="status done">Done</span> <span>Research Mode integration with Google Search.</span></li>
+                <li><span class="status done">Done</span> <span>Local-first storage architecture.</span></li>
+                <li><span class="status done">Done</span> <span>Multi-modal diagram analysis support.</span></li>
+            </ul>
+        </div>
+
+        <div class="phase">
+            <h2>Phase 2: Enhanced Operability (Q1-Q2 2026)</h2>
+            <ul>
+                <li><span class="status todo">Todo</span> <span>Export Engine: Configuration downloads (.cfg, .txt).</span></li>
+                <li><span class="status todo">Todo</span> <span>Diff Viewer: Compare suggestions vs running-configs.</span></li>
+                <li><span class="status todo">Todo</span> <span>Interactive Sandbox: Simulated terminal testing.</span></li>
+            </ul>
+        </div>
+
+        <div class="phase">
+            <h2>Phase 3: Verification (Q3-Q4 2026)</h2>
+            <ul>
+                <li><span class="status todo">Todo</span> <span>Cisco DevNet Sandbox integration.</span></li>
+                <li><span class="status todo">Todo</span> <span>Security Hardening Scorecard.</span></li>
+                <li><span class="status todo">Todo</span> <span>Audit Report Generation (PDF/Markdown).</span></li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

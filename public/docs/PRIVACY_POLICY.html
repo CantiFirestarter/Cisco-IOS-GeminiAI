@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Cisco IOS AI</title>
+    <style>
+        :root { --bg: #020617; --text: #f8fafc; --muted: #94a3b8; --accent: #2563eb; --border: #1e293b; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem 1rem; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1, h2, h3 { color: var(--accent); font-weight: 700; margin-top: 2rem; }
+        h1 { font-size: 2.25rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; margin-top: 0; }
+        p, li { color: var(--muted); font-size: 1.1rem; }
+        strong { color: var(--text); }
+        ul { padding-left: 1.5rem; }
+        li { margin-bottom: 0.5rem; }
+        .date { font-size: 0.875rem; color: var(--accent); opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2rem; }
+        hr { border: 0; border-top: 1px solid var(--border); margin: 3rem 0; }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Privacy Policy</h1>
+        <div class="date">Last Updated: January 2026</div>
+        
+        <h2>1. Introduction</h2>
+        <p>Cisco IOS AI ("the App") is a specialized technical utility designed for network engineers. This Privacy Policy outlines how we handle data, ensuring your privacy and data sovereignty are prioritized through a "Local-First" architecture.</p>
+
+        <h2>2. Data Collection and Usage</h2>
+        <p>We do not collect personal information (names, email addresses, or phone numbers) on our own servers. The App operates primarily on your device.</p>
+
+        <h3>2.1 Technical Queries</h3>
+        <p>When you enter CLI commands, network logs, or upload images/files for analysis, this data is sent to <strong>Google Gemini AI</strong> for processing. This data is used solely to generate technical responses and troubleshoot your networking queries.</p>
+
+        <h3>2.2 Local Storage</h3>
+        <p>Your interaction history, configuration preferences, and predictive suggestions are stored locally in your browser's <code>LocalStorage</code>. This data stays on your device and is not accessible to us.</p>
+
+        <h2>3. Google Drive Sync</h2>
+        <p>The App offers an optional Cloud Sync feature using Google Drive.</p>
+        <ul>
+            <li><strong>Scope:</strong> If enabled, the App requests access to the <code>appDataFolder</code>.</li>
+            <li><strong>Privacy:</strong> This is a hidden, restricted folder on your Google Drive that is private to your account and this specific App. We (the developers) <strong>cannot</strong> access, read, or modify any files stored in your Google Drive.</li>
+            <li><strong>Purpose:</strong> This allows you to synchronize your command history across different devices where you use the App.</li>
+        </ul>
+
+        <h2>4. Permissions</h2>
+        <p>The App may request the following permissions:</p>
+        <ul>
+            <li><strong>Microphone:</strong> Used only when you explicitly activate the voice-to-command feature.</li>
+            <li><strong>Camera & Files:</strong> Used only when you choose to upload network diagrams, configuration files, or logs for AI analysis.</li>
+        </ul>
+
+        <h2>5. Third-Party Services</h2>
+        <p>The App utilizes the following third-party services:</p>
+        <ul>
+            <li><strong>Google Gemini API:</strong> For generating technical intelligence.</li>
+            <li><strong>Google Drive API:</strong> For cross-device synchronization.</li>
+            <li><strong>Google Search (Grounding):</strong> Used only when "Research Mode" is active to verify documentation.</li>
+        </ul>
+
+        <h2>6. Data Deletion and Control</h2>
+        <p>You have full control over your data. You can clear your entire history within the App settings or perform a "Hard Reset" to wipe all local data and cloud sync files.</p>
+
+        <hr>
+        <p><em>This policy is subject to change. For inquiries, please refer to the project documentation.</em></p>
+    </div>
+</body>
+</html>

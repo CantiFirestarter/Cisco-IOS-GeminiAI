@@ -119,11 +119,11 @@ export default function OnboardingScreen({
             Keys are stored securely in your browser's local storage.
           </p>
           <div className="flex items-center justify-center gap-4 text-[9px] font-bold uppercase tracking-widest opacity-40">
-            <a href="/docs/PRIVACY_POLICY.md" target="_blank" className="hover:text-blue-500 transition-colors">Privacy</a>
+            <a href="/docs/PRIVACY_POLICY.html" target="_blank" className="hover:text-blue-500 transition-colors">Privacy</a>
             <span className="w-1 h-1 rounded-full bg-current"></span>
-            <a href="/docs/TERMS_OF_SERVICE.md" target="_blank" className="hover:text-blue-500 transition-colors">Terms</a>
+            <a href="/docs/TERMS_OF_SERVICE.html" target="_blank" className="hover:text-blue-500 transition-colors">Terms</a>
             <span className="w-1 h-1 rounded-full bg-current"></span>
-            <a href="/docs/README.md" target="_blank" className="hover:text-blue-500 transition-colors">Docs</a>
+            <a href="/docs/README.html" target="_blank" className="hover:text-blue-500 transition-colors">Docs</a>
           </div>
         </div>
       </div>
