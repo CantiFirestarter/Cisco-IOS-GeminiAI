@@ -8,5 +8,15 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  "routes": [
+    {
+      "pattern": "cisco-ios-ai.firestarterforge.dev",
+      "custom_domain": true
+    },
+    {
+      "pattern":"www.cisco-ios-ai.firestarterforge.dev",
+      "custom_domain": true
+    }
+  ]
 }
