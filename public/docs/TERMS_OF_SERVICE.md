@@ -38,7 +38,7 @@ We reserve the right to modify or discontinue the App (or any part thereof) at a
 We reserve the right to terminate your access to the App for any reason, including violation of these Terms of Service.
 
 ## 10. Governing Law
-これらの terms shall be governed by and construed in accordance with the laws of the jurisdiction in which the developer resides, without regard to its conflict of law provisions.
+These terms shall be governed by and construed in accordance with the laws of the jurisdiction in which the developer resides, without regard to its conflict of law provisions.
 
 ---
 *If you have questions regarding these terms, please consult the project documentation or repository.*
