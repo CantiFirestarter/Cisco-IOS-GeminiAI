@@ -1,9 +1,9 @@
-# Privacy Policy for Cisco CLI AI Expert
+# Privacy Policy for Cisco IOS AI
 
 **Last Updated: Jan 2026**
 
 ## 1. Introduction
-Cisco CLI AI Expert ("the App") is a specialized technical utility designed for network engineers. This Privacy Policy outlines how we handle data, ensuring your privacy and data sovereignty are prioritized through a "Local-First" architecture.
+Cisco IOS AI ("the App") is a specialized technical utility designed for network engineers. This Privacy Policy outlines how we handle data, ensuring your privacy and data sovereignty are prioritized through a "Local-First" architecture.
 
 ## 2. Data Collection and Usage
 We do not collect personal information (names, email addresses, or phone numbers) on our own servers. The App operates primarily on your device.

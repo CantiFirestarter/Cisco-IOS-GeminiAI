@@ -1,12 +1,12 @@
-# Terms of Service for Cisco CLI AI Expert
+# Terms of Service for Cisco IOS AI
 
 **Last Updated: Jan 2026**
 
 ## 1. Acceptance of Terms
-By accessing or using Cisco CLI AI Expert ("the App"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the App.
+By accessing or using Cisco IOS AI ("the App"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the App.
 
 ## 2. Description of Service
-Cisco CLI AI Expert is a technical utility that leverages the Google Gemini API to provide command syntax synthesis, configuration guidance, and troubleshooting information for Cisco IOS, IOS XE, and IOS XR environments.
+Cisco IOS AI is a technical utility that leverages the Google Gemini API to provide command syntax synthesis, configuration guidance, and troubleshooting information for Cisco IOS, IOS XE, and IOS XR environments.
 
 ## 3. No Professional Advice
 The technical information provided by the App is for educational and reference purposes only. 

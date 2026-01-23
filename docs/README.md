@@ -1,6 +1,6 @@
-# Cisco CLI AI Expert - Documentation Index
+# Cisco IOS AI - Documentation Index
 
-Welcome to the official documentation folder for the Cisco CLI AI Expert. This directory contains legal and technical reference materials.
+Welcome to the official documentation folder for the Cisco IOS AI. This directory contains legal and technical reference materials.
 
 ## Available Documents
 
@@ -11,7 +11,7 @@ Welcome to the official documentation folder for the Cisco CLI AI Expert. This d
 
 ## About the Project
 
-Cisco CLI AI Expert is a deterministic AI-powered assistant designed to assist network engineers with Cisco IOS, IOS XE, and IOS XR command syntax and troubleshooting.
+Cisco IOS AI is a deterministic AI-powered assistant designed to assist network engineers with Cisco IOS, IOS XE, and IOS XR command syntax and troubleshooting.
 
 ### Technical Highlights
 - **Engine**: Powered by Google Gemini 3 (Pro/Flash).

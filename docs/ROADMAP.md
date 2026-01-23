@@ -1,8 +1,8 @@
-# Cisco CLI AI Expert - Strategic Roadmap
+# Cisco IOS AI - Strategic Roadmap
 
 **Last Updated: Jan 2026**
 
-This document outlines the planned trajectory for the Cisco CLI AI Expert. Our goal is to evolve from a documentation synthesizer into an active configuration and design partner for network engineers.
+This document outlines the planned trajectory for the Cisco IOS AI. Our goal is to evolve from a documentation synthesizer into an active configuration and design partner for network engineers.
 
 ## 🚀 Phase 1: Foundations (Current)
 *Status: Completed/Ongoing*

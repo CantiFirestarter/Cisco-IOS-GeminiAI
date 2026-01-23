@@ -1,10 +1,10 @@
-# Architecture Documentation - Cisco CLI AI Expert
+# Architecture Documentation - Cisco IOS AI
 
-This document outlines the technical architecture, data flow, and design principles of the Cisco CLI AI Expert application.
+This document outlines the technical architecture, data flow, and design principles of the Cisco IOS AI application.
 
 ## 1. High-Level Overview
 
-The Cisco CLI AI Expert is a **Client-Side Only (CSO)** web application. It operates without a custom backend, interacting directly with the Google Gemini API and Google Drive API from the user's browser.
+The Cisco IOS AI is a **Client-Side Only (CSO)** web application. It operates without a custom backend, interacting directly with the Google Gemini API and Google Drive API from the user's browser.
 
 ### Core Philosophy: Local-First
 - **Privacy by Design**: All user command history and configurations are stored in `LocalStorage` by default.

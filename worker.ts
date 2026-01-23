@@ -1,5 +1,5 @@
 /**
- * Cisco CLI Command Expert - Cloudflare Worker Entry Point
+ * Cisco IOS AI - Cloudflare Worker Entry Point
  * Handles asset serving, SPA routing, and security headers.
  */
 

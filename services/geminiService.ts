@@ -1,6 +1,6 @@
 
 /**
- * Cisco CLI Command Expert - Gemini API Service Layer
+ * Cisco IOS AI - Gemini API Service Layer
  * Copyright (c) 2026 Firestarter Forge
  * Author: Canti Firestarter <canti@firestartforge.dev>
  */

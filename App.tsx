@@ -1,6 +1,6 @@
 
 /**
- * Cisco CLI Command Expert - Main Application Orchestrator
+ * Cisco IOS AI - Main Application Orchestrator
  * Copyright (c) 2026 Firestarter Forge
  * Author: Canti Firestarter <canti@firestartforge.dev>
  */

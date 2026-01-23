@@ -38,7 +38,7 @@ export default function AppHeader({
       <button onClick={goHome} className="flex items-center gap-2 sm:gap-3 group overflow-hidden">
         <div className="bg-blue-600 p-1.5 sm:p-2 rounded-lg shadow-lg group-hover:bg-blue-500 transition-colors shrink-0"><i className="fas fa-network-wired text-base sm:text-xl text-white"></i></div>
         <div className="flex flex-col overflow-hidden">
-          <h1 className="font-bold text-sm sm:text-lg leading-tight tracking-tight group-hover:text-blue-500 transition-colors truncate">Cisco CLI Expert</h1>
+          <h1 className="font-bold text-sm sm:text-lg leading-tight tracking-tight group-hover:text-blue-500 transition-colors truncate">Cisco IOS AI</h1>
           <p className={`text-[7px] sm:text-[10px] uppercase tracking-[0.1em] font-bold block ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{isDark ? 'DARK INTELLIGENCE OPS' : 'ENTERPRISE LIGHT PROTOCOL'}</p>
         </div>
       </button>

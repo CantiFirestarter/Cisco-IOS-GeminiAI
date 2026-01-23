@@ -1,6 +1,6 @@
 
 /**
- * Cisco CLI Command Expert
+ * Cisco IOS AI
  * Copyright (c) 2026 Firestarter Forge
  * Author: Canti Firestarter <canti@firestartforge.dev>
  * License: MIT
