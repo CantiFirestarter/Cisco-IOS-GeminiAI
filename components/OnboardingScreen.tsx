@@ -113,10 +113,19 @@ export default function OnboardingScreen({
            <button onClick={handleStudioKey} className={`mt-4 w-full py-2 rounded-xl border border-dashed text-xs opacity-60 hover:opacity-100 ${isDark ? 'border-slate-800' : 'border-slate-300'}`}>Use IDX/Studio Key</button>
         )}
 
-        <p className="text-[10px] opacity-40 mt-6 max-w-[280px] mx-auto">
-          <i className="fas fa-lock mr-1"></i>
-          Keys are stored securely in your browser's local storage. Free keys may use data for model training.
-        </p>
+        <div className="flex flex-col gap-2 mt-8">
+          <p className="text-[10px] opacity-40 max-w-[280px] mx-auto">
+            <i className="fas fa-lock mr-1"></i>
+            Keys are stored securely in your browser's local storage.
+          </p>
+          <div className="flex items-center justify-center gap-4 text-[9px] font-bold uppercase tracking-widest opacity-40">
+            <a href="/docs/PRIVACY_POLICY.md" target="_blank" className="hover:text-blue-500 transition-colors">Privacy</a>
+            <span className="w-1 h-1 rounded-full bg-current"></span>
+            <a href="/docs/TERMS_OF_SERVICE.md" target="_blank" className="hover:text-blue-500 transition-colors">Terms</a>
+            <span className="w-1 h-1 rounded-full bg-current"></span>
+            <a href="/docs/README.md" target="_blank" className="hover:text-blue-500 transition-colors">Docs</a>
+          </div>
+        </div>
       </div>
     </div>
   );
